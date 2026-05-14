@@ -1,0 +1,31 @@
+{
+  "currentSeason": "2025-26",
+  "seasons": [
+    {
+      "key": "2025-26",
+      "name": "2025/26",
+      "leagues": {
+        "rvfa": {
+          "key": "rvfa",
+          "name": "RVFA",
+          "leagueId": 345678,
+          "includeCup": true
+        },
+        "divisions": [
+          {
+            "key": "premier-league",
+            "name": "Premier League",
+            "leagueId": 123456,
+            "includeCup": true
+          },
+          {
+            "key": "championship",
+            "name": "Championship",
+            "leagueId": 234567,
+            "includeCup": true
+          }
+        ]
+      }
+    }
+  ]
+}

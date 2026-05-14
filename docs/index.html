@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RVFA</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <p class="eyebrow">Fantasy Premier League</p>
+        <h1>RVFA</h1>
+        <p>
+          Combined standings for the Premier League and Championship divisions.
+        </p>
+      </header>
+
+      <section class="card">
+        <div class="section-heading">
+          <h2>Combined League</h2>
+          <p id="generated-at">Loading data...</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Team</th>
+                <th>Divisions</th>
+                <th>Total</th>
+                <th>Latest GW</th>
+                <th>Hits</th>
+                <th>Chip</th>
+              </tr>
+            </thead>
+            <tbody id="combined-standings"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-heading">
+          <h2>Cups</h2>
+          <p id="cup-status">Loading cup data...</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>League</th>
+                <th>GW</th>
+                <th>Team 1</th>
+                <th>Score</th>
+                <th>Team 2</th>
+              </tr>
+            </thead>
+            <tbody id="cup-matchups"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="grid" id="division-standings"></section>
+    </main>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

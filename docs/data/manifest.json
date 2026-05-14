@@ -1,0 +1,10 @@
+{
+  "currentSeason": "2025-26",
+  "seasons": [
+    {
+      "key": "2025-26",
+      "name": "2025/26",
+      "path": "./seasons/2025-26.json"
+    }
+  ]
+}
