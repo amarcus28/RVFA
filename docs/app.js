@@ -212,6 +212,61 @@ function setGeneratedAt(data) {
   }
 }
 
+async function renderManagerOfTheMonth(leagueKey, data) {
+  const status = document.querySelector("#motm-status");
+  const body = document.querySelector("#motm-standings");
+
+  if (!status || !body) {
+    return;
+  }
+
+  const motmUrl = `./data/motm/${leagueKey}.json`;
+
+  try {
+    const response = await fetch(motmUrl);
+    if (!response.ok) {
+      throw new Error(`No MOTM file (${response.status}). Add docs/data/motm/${leagueKey}.json`);
+    }
+
+    const motm = await response.json();
+    const winners = Array.isArray(motm.winners) ? motm.winners : [];
+    const seasonPart = motm.season ? `${motm.season}` : "";
+    const namePart = motm.divisionName ?? "";
+    status.textContent = [seasonPart, namePart].filter(Boolean).join(" · ");
+
+    if (winners.length === 0) {
+      body.innerHTML =
+        '<tr><td colspan="4">No MOTM rows yet. Edit <code>docs/data/motm/' +
+        escapeHtml(leagueKey) +
+        ".json</code>.</td></tr>";
+      return;
+    }
+
+    body.innerHTML = winners
+      .map((row) => {
+        const rawEntry = row.entryId != null && row.entryId !== "" ? Number(row.entryId) : null;
+        const entryId = rawEntry != null && !Number.isNaN(rawEntry) ? rawEntry : null;
+        const resolved = entryId ? teamForEntry(data, entryId) : null;
+        const teamName = resolved?.entryName ?? row.team ?? "—";
+        const managerName = resolved?.playerName ?? row.manager ?? "—";
+        const teamCell = entryId ? teamLink(entryId, teamName) : escapeHtml(teamName);
+
+        return `
+        <tr>
+          <td>${escapeHtml(row.month ?? "—")}</td>
+          <td>${escapeHtml(row.gameweeks ?? "—")}</td>
+          <td>${teamCell}</td>
+          <td>${escapeHtml(managerName)}</td>
+        </tr>
+      `;
+      })
+      .join("");
+  } catch (error) {
+    status.textContent = "";
+    body.innerHTML = `<tr><td colspan="4" class="empty-state">${escapeHtml(error.message)}</td></tr>`;
+  }
+}
+
 function renderCombinedStandings(data) {
   const body = document.querySelector("#combined-standings");
   if (!body) {
@@ -505,6 +560,7 @@ async function main() {
 
     renderLeagueStandings(league, data);
     renderCup([{ leagueName: league.name, cup: league.cup }]);
+    await renderManagerOfTheMonth(leagueKey, data);
     return;
   }
 
@@ -518,7 +574,8 @@ main().catch((error) => {
     document.querySelector("#generated-at") ??
     document.querySelector("#league-count") ??
     document.querySelector("#league-update-status") ??
-    document.querySelector("#cup-status");
+    document.querySelector("#cup-status") ??
+    document.querySelector("#motm-status");
 
   if (statusElement) {
     statusElement.textContent = `Could not load data: ${error.message}`;

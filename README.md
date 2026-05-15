@@ -64,7 +64,7 @@ cp rvfa.config.example.json rvfa.config.json
 npm run fetch:data
 ```
 
-The fetch script defaults to `currentSeason`. It writes season-specific data to `docs/data/seasons/<season>.json`, updates `docs/data/manifest.json`, and writes the current season to `docs/data/rvfa.json` for the static site.
+The fetch script defaults to `currentSeason`. It writes season-specific data to `docs/data/seasons/<season>.json`, updates `docs/data/manifest.json`, and writes the current season to `docs/data/rvfa.json` for the static site (only when the fetched season matches `currentSeason`). After every fetch it also writes **`data/roster.json`** for local copy/paste (gitignored; not part of GitHub Pages). See `data/roster.example.json` for the shape.
 
 You can fetch an explicitly configured season with:
 

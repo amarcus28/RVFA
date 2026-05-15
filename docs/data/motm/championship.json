@@ -1,0 +1,78 @@
+{
+  "season": "2025-26",
+  "divisionKey": "championship",
+  "divisionName": "Championship",
+  "_readme": "Set entryId to the FPL entry number (same as in URLs). Team and manager names are taken from league standings when entryId is set; use team/manager fields as fallbacks when entryId is null or missing from data.",
+  "winners": [
+    {
+      "month": "August",
+      "gameweeks": "1-3",
+      "team": "Team name",
+      "manager": "Manager name",
+      "entryId": 5873477
+    },
+    {
+      "month": "September",
+      "gameweeks": "4-7",
+      "team": "Team name",
+      "manager": "Manager name",
+      "entryId": 5873477
+    },
+    {
+      "month": "October",
+      "gameweeks": "8-10",
+      "team": "Team name",
+      "manager": "Manager name",
+      "entryId": 5873477
+    },
+    {
+      "month": "November",
+      "gameweeks": "11-14",
+      "team": "Team name",
+      "manager": "Manager name",
+      "entryId": 5874722
+    },
+    {
+      "month": "December",
+      "gameweeks": "15-18",
+      "team": "Team name",
+      "manager": "Manager name",
+      "entryId": 6897611
+    },
+    {
+      "month": "January",
+      "gameweeks": "19-22",
+      "team": "Team name",
+      "manager": "Manager name",
+      "entryId": 2494993
+    },
+    {
+      "month": "February",
+      "gameweeks": "23-26",
+      "team": "Team name",
+      "manager": "Manager name",
+      "entryId": 2494993
+    },
+    {
+      "month": "March",
+      "gameweeks": "27-29",
+      "team": "Team name",
+      "manager": "Manager name",
+      "entryId": 1169120
+    },
+    {
+      "month": "April",
+      "gameweeks": "30-34",
+      "team": "Team name",
+      "manager": "Manager name",
+      "entryId": 1169120
+    },
+    {
+      "month": "May",
+      "gameweeks": "35-38",
+      "team": "-",
+      "manager": "-",
+      "entryId": null
+    }
+  ]
+}

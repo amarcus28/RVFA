@@ -1,0 +1,14 @@
+{
+  "_comment": "Example shape only. The real file data/roster.json is created by npm run fetch:data (gitignored). Copy teams[] rows into MOTM JSON or spreadsheets.",
+  "generatedAt": "2026-05-15T12:00:00.000Z",
+  "season": "2025-26",
+  "seasonName": "2025/26",
+  "teams": [
+    {
+      "entryId": 1234567,
+      "team": "Example FC",
+      "manager": "Alex Example",
+      "divisions": "Prem, Champ"
+    }
+  ]
+}

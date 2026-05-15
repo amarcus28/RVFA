@@ -9,6 +9,7 @@ const CONFIG_PATH = path.resolve("rvfa.config.json");
 const OUTPUT_PATH = path.resolve("docs/data/rvfa.json");
 const MANIFEST_PATH = path.resolve("docs/data/manifest.json");
 const SEASONS_DIR = path.resolve("docs/data/seasons");
+const ROSTER_OUTPUT_PATH = path.resolve("data/roster.json");
 const execFileAsync = promisify(execFile);
 
 async function readConfig() {
@@ -289,6 +290,61 @@ function buildCombinedStandings(managers) {
     }));
 }
 
+function abbrevDivisionKey(key) {
+  if (key === "premier-league") {
+    return "Prem";
+  }
+
+  if (key === "championship") {
+    return "Champ";
+  }
+
+  return key;
+}
+
+function buildRosterExport(rvfaLeague, divisionStandings) {
+  const byId = new Map();
+
+  const addStanding = (row, divisionKey) => {
+    const id = row.entryId;
+    if (id == null) {
+      return;
+    }
+
+    if (!byId.has(id)) {
+      byId.set(id, {
+        entryId: id,
+        team: row.entryName,
+        manager: row.playerName,
+        divisions: new Set(),
+      });
+    }
+
+    if (divisionKey) {
+      byId.get(id).divisions.add(abbrevDivisionKey(divisionKey));
+    }
+  };
+
+  for (const row of rvfaLeague?.standings ?? []) {
+    addStanding(row, null);
+  }
+
+  for (const div of divisionStandings ?? []) {
+    for (const row of div.standings ?? []) {
+      addStanding(row, div.key);
+    }
+  }
+
+  return Array.from(byId.values())
+    .map((row) => ({
+      entryId: row.entryId,
+      team: row.team,
+      manager: row.manager,
+      divisions: [...row.divisions].sort().join(", ") || null,
+    }))
+    .sort((a, b) => String(a.team).localeCompare(String(b.team), undefined, { sensitivity: "base" }));
+}
+
 async function main() {
   const config = await readConfig();
   const seasonKey = process.argv[2] ?? config.currentSeason;
@@ -381,6 +437,16 @@ async function main() {
   if (season.key === config.currentSeason) {
     await writeFile(OUTPUT_PATH, `${JSON.stringify(payload, null, 2)}\n`);
   }
+
+  await mkdir(path.dirname(ROSTER_OUTPUT_PATH), { recursive: true });
+  const rosterExport = {
+    generatedAt: payload.generatedAt,
+    season: payload.season,
+    seasonName: payload.seasonName,
+    teams: buildRosterExport(rvfaLeague, divisionStandings),
+  };
+  await writeFile(ROSTER_OUTPUT_PATH, `${JSON.stringify(rosterExport, null, 2)}\n`);
+  console.log(`Wrote ${path.relative(process.cwd(), ROSTER_OUTPUT_PATH)}`);
 
   console.log(`Wrote ${path.relative(process.cwd(), seasonOutputPath)}`);
 }
