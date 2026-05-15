@@ -15,6 +15,59 @@ function escapeHtml(value) {
   });
 }
 
+function formatCount(value, fallback = "—") {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+
+  const num = Number(value);
+
+  if (!Number.isFinite(num)) {
+    return fallback;
+  }
+
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(num);
+}
+
+function formatFixed(value, digits = 1, fallback = "—") {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+
+  const num = Number(value);
+
+  if (!Number.isFinite(num)) {
+    return fallback;
+  }
+
+  return num.toFixed(digits);
+}
+
+function fplTeamValueToMillion(value) {
+  if (value == null || value === "") {
+    return null;
+  }
+
+  const n = Number(value);
+
+  return Number.isFinite(n) ? n / 10 : null;
+}
+
+function formatTopPercentOfAllManagers(overallRank, totalPlayers) {
+  if (
+    overallRank == null ||
+    totalPlayers == null ||
+    !Number.isFinite(Number(totalPlayers)) ||
+    !Number.isFinite(Number(overallRank)) ||
+    totalPlayers <= 0 ||
+    overallRank <= 0
+  ) {
+    return null;
+  }
+
+  return formatFixed((overallRank / totalPlayers) * 100, 1);
+}
+
 function formatGeneratedAt(value) {
   if (!value) {
     return "No data fetched yet";
@@ -117,11 +170,13 @@ function formatGameweekPoints(gameweek) {
     return "-";
   }
 
+  const pointsStr = formatCount(points, "-");
+
   if (!transferCost) {
-    return points;
+    return pointsStr;
   }
 
-  return `${points} (-${transferCost})`;
+  return `${pointsStr} (-${formatCount(transferCost, "-")})`;
 }
 
 function parseGameweekRange(value) {
@@ -328,7 +383,7 @@ function renderMotmWinnersTable(leagueKey, data, motm) {
       const manager = data.managers.find((candidate) => candidate.id === entryId);
       const gwRange = parseGameweekRange(row.gameweeks);
       const monthPoints = sumPointsInGameweekRange(manager, gwRange);
-      const pointsDisplay = monthPoints != null ? String(monthPoints) : "—";
+      const pointsDisplay = monthPoints != null ? formatCount(monthPoints) : "—";
 
       return `
         <tr>
@@ -399,7 +454,7 @@ function renderMotmLiveLeaders(league, data, motm) {
 
   liveBody.innerHTML = top
     .map((row, index) => {
-      const ptsDisplay = row.pts != null ? String(row.pts) : "—";
+      const ptsDisplay = row.pts != null ? formatCount(row.pts) : "—";
 
       return `
         <tr>
@@ -464,10 +519,10 @@ function renderCombinedStandings(data) {
       const latest = latestGameweek(manager);
       return `
         <tr>
-          <td>${manager.rvfaRank}</td>
+          <td>${formatCount(manager.rvfaRank)}</td>
           <td>${teamLink(manager.entryId, teamNameFor(data, manager.entryId))}</td>
           <td>${manager.divisions.map((division) => escapeHtml(abbreviateDivisionKey(division))).join(", ")}</td>
-          <td>${manager.totalPoints}</td>
+          <td>${formatCount(manager.totalPoints)}</td>
           <td>${formatGameweekPoints(latest)}</td>
           <td>${escapeHtml(formatChip(latest?.activeChip))}</td>
         </tr>
@@ -498,8 +553,8 @@ function renderCup(cups, { includeLeagueName = false } = {}) {
   }
 
   status.textContent = includeLeagueName
-    ? `${matches.length} matchups across ${availableCups.length} cups`
-    : `${matches.length} matchups`;
+    ? `${formatCount(matches.length)} matchups across ${formatCount(availableCups.length)} cups`
+    : `${formatCount(matches.length)} matchups`;
 
   if (matches.length === 0) {
     container.innerHTML = '<p class="empty-state">No cup matchups yet.</p>';
@@ -537,9 +592,9 @@ function renderCup(cups, { includeLeagueName = false } = {}) {
                             ? `<td class="cup-td-league">${escapeHtml(abbreviateLeagueLabel(match.leagueName))}</td>`
                             : ""
                         }
-                        <td class="cup-td-gw">${match.event ?? "-"}</td>
+                        <td class="cup-td-gw">${match.event != null ? formatCount(match.event) : "-"}</td>
                         <td class="cup-td-t1">${teamLink(match.entry1.entryId, match.entry1.entryName)}</td>
-                        <td class="cup-td-score">${match.entry1.points ?? "-"} – ${match.entry2.points ?? "-"}</td>
+                        <td class="cup-td-score">${formatCount(match.entry1.points, "-")} – ${formatCount(match.entry2.points, "-")}</td>
                         <td class="cup-td-t2">${teamLink(match.entry2.entryId, match.entry2.entryName)}</td>
                       </tr>
                     `,
@@ -589,7 +644,7 @@ function renderLeagueStandings(league, data) {
     return;
   }
 
-  count.textContent = `${league.standings.length} teams`;
+  count.textContent = `${formatCount(league.standings.length)} teams`;
   body.innerHTML = league.standings
     .map((team) => {
       const manager = data.managers.find((candidate) => candidate.id === team.entryId);
@@ -597,13 +652,13 @@ function renderLeagueStandings(league, data) {
 
       return `
         <tr class="${standingsRowClass(league, team)}">
-          <td>${team.rank}</td>
+          <td>${formatCount(team.rank)}</td>
           <td>${teamLink(team.entryId, team.entryName)}</td>
           <td>${escapeHtml(team.playerName)}</td>
-          <td>${team.total}</td>
+          <td>${formatCount(team.total)}</td>
           <td>${formatGameweekPoints(latest)}</td>
           <td>${escapeHtml(formatChip(latest?.activeChip))}</td>
-          <td>${team.lastRank ?? "-"}</td>
+          <td>${team.lastRank != null ? formatCount(team.lastRank) : "-"}</td>
         </tr>
       `;
     })
@@ -663,6 +718,485 @@ function divisionLabels(data, divisionKeys) {
   return divisionKeys.map((key) => divisionNames.get(key) ?? key);
 }
 
+const MANAGER_CHART_COLORS = {
+  overall: "#38bdf8",
+  gwRank: "#4ade80",
+  points: "#fb923c",
+  bench: "#f472b6",
+};
+
+function buildManagerGameweekRows(manager) {
+  if (!manager?.eventDetails?.length) {
+    return [];
+  }
+
+  return [...manager.eventDetails]
+    .map((ev) => {
+      const h = ev.entryHistory ?? {};
+
+      return {
+        gw: ev.event,
+        overallRank: h.overall_rank,
+        gwRank: h.rank,
+        points: h.points,
+        bench: h.points_on_bench,
+        totalPoints: h.total_points,
+        value: h.value,
+        transfers: h.event_transfers,
+        chip: ev.activeChip,
+      };
+    })
+    .filter((r) => r.gw != null)
+    .sort((a, b) => a.gw - b.gw);
+}
+
+function normalizeToUnitInterval(values, invert) {
+  const finite = values.filter((v) => v != null && Number.isFinite(Number(v)));
+
+  if (!finite.length) {
+    return values.map(() => null);
+  }
+
+  let min = Math.min(...finite.map(Number));
+  let max = Math.max(...finite.map(Number));
+
+  if (min === max) {
+    return values.map((v) => (v != null && Number.isFinite(Number(v)) ? 0.5 : null));
+  }
+
+  return values.map((v) => {
+    if (v == null || !Number.isFinite(Number(v))) {
+      return null;
+    }
+
+    const n = Number(v);
+    let t = (n - min) / (max - min);
+
+    if (invert) {
+      t = 1 - t;
+    }
+
+    return t;
+  });
+}
+
+function buildManagerStatCells(stats) {
+  const cell = (label, value, sub = "") => `
+    <div class="manager-stat-cell">
+      <span class="manager-stat-label">${escapeHtml(label)}</span>
+      <span class="manager-stat-value">${escapeHtml(value)}</span>
+      ${sub ? `<span class="manager-stat-sub">${escapeHtml(sub)}</span>` : ""}
+    </div>`;
+
+  return `
+    ${cell("RANK", stats.overallRank, stats.rankSub)}
+    ${cell("POINTS", stats.totalPoints, stats.ptsPerGw)}
+    ${cell("TEAM VALUE", stats.teamValue, "")}
+    ${cell("BEST GW RANK", stats.bestGwRank, stats.bestGwRankSub)}
+    ${cell("BEST GW SCORE", stats.bestGwScore, stats.bestGwScoreSub)}
+    ${cell("TOTAL TRANSFERS", stats.totalTransfers, stats.transfersPerGw)}
+  `;
+}
+
+function computeManagerDashboardStats(rows, totalPlayers) {
+  const withPoints = rows.filter((r) => r.points != null);
+  const played = withPoints.length;
+  const last = rows.length ? rows.at(-1) : null;
+  const latestHist = last?.totalPoints;
+
+  let overallRank = "—";
+  let rankSub = "";
+
+  if (last?.overallRank != null) {
+    overallRank = formatCount(last.overallRank);
+    const topPct = formatTopPercentOfAllManagers(last.overallRank, totalPlayers);
+
+    if (topPct != null) {
+      rankSub = `Top ${topPct}% of all managers`;
+    }
+  }
+
+  let totalPoints = "—";
+  let ptsPerGw = "";
+
+  if (latestHist != null && played > 0) {
+    totalPoints = formatCount(latestHist);
+    ptsPerGw = `${formatFixed(latestHist / played, 1)}/GW`;
+  }
+
+  let teamValue = "—";
+
+  if (last?.value != null) {
+    const m = fplTeamValueToMillion(last.value);
+
+    if (m != null) {
+      teamValue = `${formatFixed(m, 1)}M`;
+    }
+  }
+
+  const gwRanks = rows.map((r) => r.gwRank).filter((v) => v != null && Number.isFinite(Number(v)));
+  let bestGwRank = "—";
+  let bestGwRankSub = "";
+
+  if (gwRanks.length) {
+    const best = Math.min(...gwRanks.map(Number));
+    const at = rows.find((r) => Number(r.gwRank) === best);
+    bestGwRank = formatCount(best);
+
+    if (at?.gw != null) {
+      bestGwRankSub = `GW${at.gw}`;
+    }
+  }
+
+  const scores = rows.map((r) => r.points).filter((v) => v != null && Number.isFinite(Number(v)));
+  let bestGwScore = "—";
+  let bestGwScoreSub = "";
+
+  if (scores.length) {
+    const best = Math.max(...scores.map(Number));
+    const at = rows.find((r) => Number(r.points) === best);
+    bestGwScore = formatCount(best);
+
+    if (at?.gw != null) {
+      bestGwScoreSub = `GW${at.gw}`;
+    }
+  }
+
+  const transfers = rows.reduce((sum, r) => sum + (Number(r.transfers) || 0), 0);
+  let transfersPerGw = "";
+
+  if (played > 0) {
+    transfersPerGw = `${formatFixed(transfers / played, 1)}/GW`;
+  }
+
+  return {
+    overallRank,
+    rankSub,
+    totalPoints,
+    ptsPerGw,
+    teamValue,
+    bestGwRank,
+    bestGwRankSub,
+    bestGwScore,
+    bestGwScoreSub,
+    totalTransfers: formatCount(transfers),
+    transfersPerGw,
+  };
+}
+
+function renderManagerChipBadges(manager) {
+  const chips = manager.chips ?? [];
+
+  if (!chips.length) {
+    return '<p class="manager-chip-empty">No chips logged yet.</p>';
+  }
+
+  return chips
+    .map((chip) => {
+      const label = formatChip(chip.name);
+      const gwPart = chip.event != null ? ` \u00B7 ${chip.event}` : "";
+      const title = [label, chip.event != null ? `GW ${chip.event}` : ""].filter(Boolean).join(" · ");
+
+      return `<span class="manager-chip-badge" title="${escapeHtml(title)}">${escapeHtml(label)}${escapeHtml(gwPart)}</span>`;
+    })
+    .join("");
+}
+
+function wireManagerChartSeriesToggles(svg) {
+  const dashboard = svg.closest("#manager-dashboard");
+
+  if (!dashboard) {
+    return () => {};
+  }
+
+  const toggles = [...dashboard.querySelectorAll(".manager-chart-series-toggle")];
+
+  const applyVisibility = (toggle) => {
+    const key = toggle.dataset.series;
+
+    if (!key) {
+      return;
+    }
+
+    const path = svg.querySelector(`.manager-chart-series--${key}`);
+    const item = toggle.closest(".manager-chart-legend-item");
+
+    if (path) {
+      path.setAttribute("visibility", toggle.checked ? "visible" : "hidden");
+    }
+
+    if (item) {
+      item.classList.toggle("is-off", !toggle.checked);
+    }
+  };
+
+  const onChange = (event) => {
+    applyVisibility(event.target);
+  };
+
+  for (const toggle of toggles) {
+    toggle.addEventListener("change", onChange);
+    applyVisibility(toggle);
+  }
+
+  return () => {
+    for (const toggle of toggles) {
+      toggle.removeEventListener("change", onChange);
+    }
+  };
+}
+
+function resetManagerChartLegendToggles() {
+  const dashboard = document.querySelector("#manager-dashboard");
+
+  if (!dashboard) {
+    return;
+  }
+
+  for (const toggle of dashboard.querySelectorAll(".manager-chart-series-toggle")) {
+    toggle.checked = true;
+  }
+
+  for (const item of dashboard.querySelectorAll(".manager-chart-legend-item")) {
+    item.classList.remove("is-off");
+  }
+}
+
+function renderManagerPerformanceChart(svg, tooltip, rows, totalPlayers) {
+  const W = 800;
+  const H = 280;
+  const pad = { l: 44, r: 20, t: 18, b: 52 };
+  const plotW = W - pad.l - pad.r;
+  const plotH = H - pad.t - pad.b;
+
+  if (!rows.length) {
+    svg.innerHTML = `<text x="${W / 2}" y="${H / 2}" text-anchor="middle" fill="#94a3b8" font-size="14">No gameweek data to chart yet.</text>`;
+    tooltip.hidden = true;
+
+    return () => {};
+  }
+
+  const gwMin = rows[0].gw;
+  const gwMax = rows.at(-1).gw;
+  const gwSpan = Math.max(1, gwMax - gwMin);
+
+  const xAt = (gw) => pad.l + ((gw - gwMin) / gwSpan) * plotW;
+
+  const normOverall = normalizeToUnitInterval(
+    rows.map((r) => r.overallRank),
+    true,
+  );
+  const normGwRank = normalizeToUnitInterval(
+    rows.map((r) => r.gwRank),
+    true,
+  );
+  const normPoints = normalizeToUnitInterval(
+    rows.map((r) => r.points),
+    false,
+  );
+  const normBench = normalizeToUnitInterval(
+    rows.map((r) => r.bench),
+    false,
+  );
+
+  const yAt = (t) => (t == null ? null : pad.t + (1 - t) * plotH);
+
+  const linePath = (norms) => {
+    const parts = [];
+
+    for (let i = 0; i < rows.length; i += 1) {
+      const t = norms[i];
+
+      if (t == null) {
+        continue;
+      }
+
+      const x = xAt(rows[i].gw);
+      const y = yAt(t);
+
+      if (y == null) {
+        continue;
+      }
+
+      parts.push(`${parts.length ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`);
+    }
+
+    return parts.join(" ");
+  };
+
+  const chipDots = rows
+    .filter((r) => r.chip)
+    .map((r) => {
+      const cx = xAt(r.gw);
+      const cy = H - pad.b + 16;
+      const tip = `${formatChip(r.chip)} GW${r.gw}`;
+
+      return `<circle cx="${cx.toFixed(1)}" cy="${cy}" r="5" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"><title>${escapeHtml(tip)}</title></circle>`;
+    })
+    .join("");
+
+  const xTicks = [];
+  const tickStep = gwSpan > 18 ? 2 : 1;
+
+  for (let g = gwMin; g <= gwMax; g += tickStep) {
+    xTicks.push(`<text x="${xAt(g).toFixed(1)}" y="${H - 22}" text-anchor="middle" fill="#64748b" font-size="11">${g}</text>`);
+  }
+
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  svg.setAttribute("role", "img");
+  svg.setAttribute(
+    "aria-label",
+    "Line chart of overall rank, gameweek rank, gameweek points, and bench points by gameweek",
+  );
+  svg.innerHTML = `
+    <line class="manager-chart-crosshair" x1="0" y1="${pad.t}" x2="0" y2="${pad.t + plotH}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4 4" opacity="0" pointer-events="none"/>
+    <path class="manager-chart-series manager-chart-series--overall" d="${linePath(normOverall)}" fill="none" stroke="${MANAGER_CHART_COLORS.overall}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <path class="manager-chart-series manager-chart-series--gwRank" d="${linePath(normGwRank)}" fill="none" stroke="${MANAGER_CHART_COLORS.gwRank}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <path class="manager-chart-series manager-chart-series--points" d="${linePath(normPoints)}" fill="none" stroke="${MANAGER_CHART_COLORS.points}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <path class="manager-chart-series manager-chart-series--bench" d="${linePath(normBench)}" fill="none" stroke="${MANAGER_CHART_COLORS.bench}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${chipDots}
+    ${xTicks.join("")}
+  `;
+
+  const crosshair = svg.querySelector(".manager-chart-crosshair");
+
+  const nearestRow = (clientX) => {
+    const rect = svg.getBoundingClientRect();
+    const scaleX = rect.width / W;
+    const padLPx = pad.l * scaleX;
+    const plotWPx = plotW * scaleX;
+    const x = clientX - rect.left;
+    const ratio = plotWPx > 0 ? Math.min(1, Math.max(0, (x - padLPx) / plotWPx)) : 0;
+    const idx = Math.round(ratio * Math.max(0, rows.length - 1));
+
+    return rows[idx];
+  };
+
+  const showTooltip = (row, clientX, clientY) => {
+    crosshair.setAttribute("opacity", "0.55");
+    crosshair.setAttribute("x1", xAt(row.gw).toFixed(1));
+    crosshair.setAttribute("x2", xAt(row.gw).toFixed(1));
+
+    const or = row.overallRank != null ? formatCount(row.overallRank) : "—";
+    const gr = row.gwRank != null ? formatCount(row.gwRank) : "—";
+    const pt = row.points != null ? formatCount(row.points) : "—";
+    const bn = row.bench != null ? formatCount(row.bench) : "—";
+
+    const topOverallPct = formatTopPercentOfAllManagers(row.overallRank, totalPlayers);
+    const ch = row.chip ? formatChip(row.chip) : "—";
+
+    tooltip.innerHTML = `
+      <div class="manager-chart-tooltip-title">GW\u00A0${escapeHtml(String(row.gw))}</div>
+      <dl class="manager-chart-tooltip-dl">
+        <div><dt>Overall rank</dt><dd>${escapeHtml(or)}</dd></div>
+        <div><dt>GW rank</dt><dd>${escapeHtml(gr)}</dd></div>
+        <div><dt>Top of all managers</dt><dd>${topOverallPct != null ? escapeHtml(`${topOverallPct}%`) : "—"}</dd></div>
+        <div><dt>GW points</dt><dd>${escapeHtml(pt)}</dd></div>
+        <div><dt>Points on bench</dt><dd>${escapeHtml(bn)}</dd></div>
+        <div><dt>Chip</dt><dd>${escapeHtml(ch)}</dd></div>
+      </dl>
+    `;
+    tooltip.hidden = false;
+    tooltip.style.position = "fixed";
+    const tw = tooltip.offsetWidth;
+    const th = tooltip.offsetHeight;
+    const offset = 14;
+    const margin = 10;
+    let left = clientX + offset;
+    let top = clientY + offset;
+
+    if (left + tw > window.innerWidth - margin) {
+      left = clientX - tw - offset;
+    }
+
+    if (top + th > window.innerHeight - margin) {
+      top = clientY - th - offset;
+    }
+
+    left = Math.max(margin, Math.min(left, window.innerWidth - tw - margin));
+    top = Math.max(margin, Math.min(top, window.innerHeight - th - margin));
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  };
+
+  const hideTooltip = () => {
+    crosshair.setAttribute("opacity", "0");
+    tooltip.hidden = true;
+  };
+
+  const removeToggles = wireManagerChartSeriesToggles(svg);
+
+  const onMove = (event) => {
+    const row = nearestRow(event.clientX);
+    showTooltip(row, event.clientX, event.clientY);
+  };
+
+  const onLeave = () => hideTooltip();
+
+  svg.addEventListener("pointermove", onMove);
+  svg.addEventListener("pointerleave", onLeave);
+  svg.addEventListener("pointerdown", onMove);
+
+  return () => {
+    removeToggles();
+    svg.removeEventListener("pointermove", onMove);
+    svg.removeEventListener("pointerleave", onLeave);
+    svg.removeEventListener("pointerdown", onMove);
+  };
+}
+
+function initManagerDashboard(manager, data, team) {
+  const root = document.querySelector("#manager-dashboard");
+
+  if (!root) {
+    return;
+  }
+
+  const headlineEl = document.querySelector("#manager-dashboard-headline");
+  const gridEl = document.querySelector("#manager-stat-grid");
+  const chipsEl = document.querySelector("#manager-chip-badges");
+  const svg = document.querySelector("#manager-chart-svg");
+  const tooltip = document.querySelector("#manager-chart-tooltip");
+
+  if (!headlineEl || !gridEl || !chipsEl || !svg || !tooltip) {
+    return;
+  }
+
+  root.hidden = false;
+  headlineEl.textContent = [data.seasonName ?? data.season, team.entryName].filter(Boolean).join(" ");
+
+  const rows = buildManagerGameweekRows(manager);
+  const stats = computeManagerDashboardStats(rows, data.totalPlayers ?? null);
+
+  gridEl.innerHTML = buildManagerStatCells(stats);
+  chipsEl.innerHTML = renderManagerChipBadges(manager);
+
+  if (root._chartTeardown) {
+    root._chartTeardown();
+    root._chartTeardown = null;
+  }
+
+  resetManagerChartLegendToggles();
+  root._chartTeardown = renderManagerPerformanceChart(svg, tooltip, rows, data.totalPlayers ?? null);
+}
+
+function hideManagerDashboard() {
+  const root = document.querySelector("#manager-dashboard");
+
+  if (!root) {
+    return;
+  }
+
+  root.hidden = true;
+
+  if (root._chartTeardown) {
+    root._chartTeardown();
+    root._chartTeardown = null;
+  }
+}
+
 function renderManagerPage(data) {
   const params = new URLSearchParams(window.location.search);
   const entryId = Number(params.get("id"));
@@ -680,12 +1214,15 @@ function renderManagerPage(data) {
     name.textContent = "Manager Not Found";
     summary.textContent = "Check the manager link and try again.";
     body.innerHTML = '<tr><td colspan="6">No manager data found.</td></tr>';
+    hideManagerDashboard();
+
     return;
   }
 
   name.textContent = team.entryName;
   summary.textContent = `${team.playerName} · ${divisionLabels(data, manager.divisions).join(", ") || "RVFA"}`;
 
+  initManagerDashboard(manager, data, team);
   body.innerHTML = [...manager.eventDetails]
     .reverse()
     .map((event) => {
@@ -699,11 +1236,11 @@ function renderManagerPage(data) {
         ${chipResetRow}
         <tr>
           <td>${eventLink(manager.id, event.event)}</td>
-          <td>${history.points ?? "-"}</td>
-          <td>${history.total_points ?? "-"}</td>
-          <td>${history.event_transfers_cost ? `-${history.event_transfers_cost}` : "-"}</td>
+          <td>${history.points != null ? formatCount(history.points) : "-"}</td>
+          <td>${history.total_points != null ? formatCount(history.total_points) : "-"}</td>
+          <td>${history.event_transfers_cost ? `-${formatCount(history.event_transfers_cost)}` : "-"}</td>
           <td>${escapeHtml(formatChip(event.activeChip))}</td>
-          <td>${history.overall_rank ?? "-"}</td>
+          <td>${history.overall_rank != null ? formatCount(history.overall_rank) : "-"}</td>
         </tr>
       `;
     })

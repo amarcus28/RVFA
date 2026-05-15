@@ -52,6 +52,57 @@
         <p class="manager-meta" id="manager-summary">Loading scores...</p>
       </header>
 
+      <section class="card manager-dashboard" id="manager-dashboard" aria-label="Season performance overview" hidden>
+        <div class="manager-dashboard-top">
+          <p class="manager-dashboard-title" id="manager-dashboard-headline"></p>
+          <div class="manager-dashboard-metrics">
+            <div class="manager-stat-grid" id="manager-stat-grid"></div>
+            <aside class="manager-chip-panel" aria-label="Chips played">
+              <p class="manager-stat-chips-label">Chips</p>
+              <div class="manager-chip-badges" id="manager-chip-badges"></div>
+            </aside>
+          </div>
+        </div>
+        <div class="manager-chart-panel">
+            <svg id="manager-chart-svg" class="manager-chart-svg" focusable="false"></svg>
+          <div id="manager-chart-tooltip" class="manager-chart-tooltip" role="tooltip" hidden></div>
+        </div>
+        <ul class="manager-chart-legend" aria-label="Chart series — toggle lines">
+          <li class="manager-chart-legend-item" data-series="overall">
+            <label class="manager-chart-legend-label">
+              <input type="checkbox" class="manager-chart-series-toggle" checked data-series="overall" />
+              <span class="manager-chart-swatch" style="background: #38bdf8" aria-hidden="true"></span>
+              Overall rank
+            </label>
+          </li>
+          <li class="manager-chart-legend-item" data-series="gwRank">
+            <label class="manager-chart-legend-label">
+              <input type="checkbox" class="manager-chart-series-toggle" checked data-series="gwRank" />
+              <span class="manager-chart-swatch" style="background: #4ade80" aria-hidden="true"></span>
+              GW rank
+            </label>
+          </li>
+          <li class="manager-chart-legend-item" data-series="points">
+            <label class="manager-chart-legend-label">
+              <input type="checkbox" class="manager-chart-series-toggle" checked data-series="points" />
+              <span class="manager-chart-swatch" style="background: #fb923c" aria-hidden="true"></span>
+              GW points
+            </label>
+          </li>
+          <li class="manager-chart-legend-item" data-series="bench">
+            <label class="manager-chart-legend-label">
+              <input type="checkbox" class="manager-chart-series-toggle" checked data-series="bench" />
+              <span class="manager-chart-swatch" style="background: #f472b6" aria-hidden="true"></span>
+              Points on bench
+            </label>
+          </li>
+        </ul>
+        <p class="manager-chart-note">
+          Chart scales each line to the season min–max so you can compare shape; hover for exact values. Toggle
+          lines in the legend.
+        </p>
+      </section>
+
       <section class="card">
         <div class="section-heading">
           <h2>Gameweek History</h2>

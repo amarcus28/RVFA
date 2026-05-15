@@ -404,6 +404,7 @@ async function main() {
     season: season.key,
     seasonName: season.name,
     currentGameweek: bootstrap.events.find((event) => event.is_current)?.id ?? null,
+    totalPlayers: bootstrap.total_players ?? null,
     rvfaLeague,
     cup: rvfaLeague.cup,
     divisions: divisionStandings,
