@@ -4,18 +4,48 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>RVFA Championship</title>
+    <link rel="icon" href="./data/images/pl_logo.png" type="image/png" />
+    <link rel="apple-touch-icon" href="./data/images/pl_logo.png" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body data-page="league" data-league="championship">
-    <main class="page">
-      <nav class="site-nav" aria-label="RVFA pages">
-        <a href="./index.html">Home</a>
-        <a href="./overall.html">RVFA Overall</a>
-        <a href="./premier-league.html">Premier League</a>
-        <a href="./championship.html" aria-current="page">Championship</a>
-        <a href="./charter.html">Charter</a>
-      </nav>
-
+    <div class="page">
+      <header class="site-header">
+        <div class="site-header-inner">
+          <a class="site-brand" href="./index.html" aria-label="The RVFA home">
+            <img
+              class="site-logo"
+              src="./data/images/pl_logo.jpg"
+              alt=""
+              width="52"
+              height="52"
+              decoding="async"
+            />
+            <span class="site-brand-text">The RVFA</span>
+          </a>
+          <nav class="site-nav site-nav--desktop" aria-label="RVFA pages">
+            <a href="./index.html">Home</a>
+            <a href="./overall.html">RVFA Overall</a>
+            <a href="./premier-league.html">Premier League</a>
+            <a href="./championship.html" aria-current="page">Championship</a>
+            <a href="./charter.html">Charter</a>
+          </nav>
+          <div class="site-nav-mobile">
+            <label for="site-nav-jump" class="site-nav-jump-label">Leagues menu</label>
+            <select id="site-nav-jump" class="site-nav-jump" aria-label="Jump to league">
+              <option value="">Leagues…</option>
+              <option value="./overall.html">RVFA Overall</option>
+              <option value="./premier-league.html">Premier League</option>
+              <option value="./championship.html">Championship</option>
+            </select>
+            <nav class="site-nav site-nav--tray" aria-label="Other pages">
+              <a href="./index.html">Home</a>
+              <a href="./charter.html">Charter</a>
+            </nav>
+          </div>
+        </div>
+      </header>
+      <main class="site-main">
       <header class="hero">
         <p class="eyebrow">RVFA Division</p>
         <h1>Championship</h1>
@@ -91,7 +121,9 @@
         </div>
       </section>
     </main>
+    </div>
 
+    <script src="./site-header.js" defer></script>
     <script src="./app.js" type="module"></script>
   </body>
 </html>
