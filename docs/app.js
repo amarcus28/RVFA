@@ -124,6 +124,84 @@ function formatGameweekPoints(gameweek) {
   return `${points} (-${transferCost})`;
 }
 
+function parseGameweekRange(value) {
+  if (value == null || value === "") {
+    return null;
+  }
+
+  const parts = String(value)
+    .trim()
+    .split(/\s*-\s*/)
+    .map((part) => Number(part.trim()));
+
+  if (parts.length === 1 && Number.isFinite(parts[0])) {
+    return { start: parts[0], end: parts[0] };
+  }
+
+  if (parts.length === 2 && Number.isFinite(parts[0]) && Number.isFinite(parts[1])) {
+    return {
+      start: Math.min(parts[0], parts[1]),
+      end: Math.max(parts[0], parts[1]),
+    };
+  }
+
+  return null;
+}
+
+function sumPointsInGameweekRange(manager, range, throughEventId = null) {
+  if (!manager || !range || !Array.isArray(manager.eventDetails)) {
+    return null;
+  }
+
+  const endInclusive =
+    throughEventId != null && Number.isFinite(throughEventId)
+      ? Math.min(range.end, throughEventId)
+      : range.end;
+
+  if (range.start > endInclusive) {
+    return null;
+  }
+
+  let total = 0;
+  let counted = 0;
+
+  for (let eventId = range.start; eventId <= endInclusive; eventId += 1) {
+    const detail = manager.eventDetails.find((event) => event.event === eventId);
+    const history = detail?.entryHistory;
+    const points = history?.points;
+
+    if (points != null) {
+      const transferHit = Number(history.event_transfers_cost) || 0;
+      total += points - transferHit;
+      counted += 1;
+    }
+  }
+
+  return counted > 0 ? total : null;
+}
+
+function findMotmPeriodForCurrentGameweek(winners, currentGw) {
+  if (!Number.isFinite(currentGw)) {
+    return null;
+  }
+
+  for (const row of winners) {
+    const range = parseGameweekRange(row.gameweeks);
+
+    if (!range || currentGw < range.start || currentGw > range.end) {
+      continue;
+    }
+
+    return {
+      month: row.month,
+      gameweeks: row.gameweeks,
+      range,
+    };
+  }
+
+  return null;
+}
+
 function formatChip(chip) {
   const chipLabels = {
     "3xc": "TC",
@@ -212,7 +290,7 @@ function setGeneratedAt(data) {
   }
 }
 
-async function renderManagerOfTheMonth(leagueKey, data) {
+function renderMotmWinnersTable(leagueKey, data, motm) {
   const status = document.querySelector("#motm-status");
   const body = document.querySelector("#motm-standings");
 
@@ -220,7 +298,136 @@ async function renderManagerOfTheMonth(leagueKey, data) {
     return;
   }
 
+  const winners = Array.isArray(motm.winners) ? motm.winners : [];
+  const withEntry = winners.filter((row) => {
+    const raw = row.entryId != null && row.entryId !== "" ? Number(row.entryId) : null;
+
+    return raw != null && !Number.isNaN(raw);
+  });
+  const seasonPart = motm.season ? `${motm.season}` : "";
+  const namePart = motm.divisionName ?? "";
+  status.textContent = [seasonPart, namePart].filter(Boolean).join(" · ");
+
+  if (withEntry.length === 0) {
+    body.innerHTML =
+      winners.length === 0
+        ? '<tr><td colspan="5">No MOTM rows yet. Edit <code>docs/data/motm/' +
+          escapeHtml(leagueKey) +
+          ".json</code>.</td></tr>"
+        : '<tr><td colspan="5" class="empty-state">No MOTM winners to show. Set <code>entryId</code> on each month you want listed.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = withEntry
+    .map((row) => {
+      const entryId = Number(row.entryId);
+      const resolved = teamForEntry(data, entryId);
+      const teamName = resolved?.entryName ?? row.team ?? "—";
+      const managerName = resolved?.playerName ?? row.manager ?? "—";
+      const teamCell = teamLink(entryId, teamName);
+      const manager = data.managers.find((candidate) => candidate.id === entryId);
+      const gwRange = parseGameweekRange(row.gameweeks);
+      const monthPoints = sumPointsInGameweekRange(manager, gwRange);
+      const pointsDisplay = monthPoints != null ? String(monthPoints) : "—";
+
+      return `
+        <tr>
+          <td>${escapeHtml(row.month ?? "—")}</td>
+          <td>${escapeHtml(row.gameweeks ?? "—")}</td>
+          <td>${teamCell}</td>
+          <td>${escapeHtml(managerName)}</td>
+          <td>${escapeHtml(pointsDisplay)}</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+function renderMotmLiveLeaders(league, data, motm) {
+  const liveStatus = document.querySelector("#motm-live-status");
+  const liveBody = document.querySelector("#motm-live-standings");
+
+  if (!liveStatus || !liveBody) {
+    return;
+  }
+
+  const winners = Array.isArray(motm.winners) ? motm.winners : [];
+  const currentGw = Number(data.currentGameweek);
+
+  if (!Number.isFinite(currentGw) || currentGw < 1) {
+    liveStatus.textContent = "";
+    liveBody.innerHTML =
+      '<tr><td colspan="4" class="empty-state">Current gameweek is not available in the data file.</td></tr>';
+    return;
+  }
+
+  const period = findMotmPeriodForCurrentGameweek(winners, currentGw);
+
+  if (!period) {
+    liveStatus.textContent = "";
+    liveBody.innerHTML = `<tr><td colspan="4" class="empty-state">No MOTM month in <code>docs/data/motm/</code> covers gameweek ${escapeHtml(String(currentGw))}.</td></tr>`;
+    return;
+  }
+
+  liveStatus.textContent = [
+    period.month,
+    `Month GWs ${period.range.start}–${period.range.end}`,
+    `Totals through GW\u00A0${currentGw}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const scored = league.standings.map((team) => {
+    const manager = data.managers.find((candidate) => candidate.id === team.entryId);
+    const pts = sumPointsInGameweekRange(manager, period.range, currentGw);
+
+    return { team, pts };
+  });
+
+  scored.sort((rowA, rowB) => {
+    const scoreA = rowA.pts ?? -1;
+    const scoreB = rowB.pts ?? -1;
+
+    if (scoreB !== scoreA) {
+      return scoreB - scoreA;
+    }
+
+    return rowA.team.entryId - rowB.team.entryId;
+  });
+
+  const top = scored.slice(0, 3);
+
+  liveBody.innerHTML = top
+    .map((row, index) => {
+      const ptsDisplay = row.pts != null ? String(row.pts) : "—";
+
+      return `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${teamLink(row.team.entryId, row.team.entryName)}</td>
+          <td>${escapeHtml(row.team.playerName)}</td>
+          <td>${escapeHtml(ptsDisplay)}</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+async function renderManagerOfTheMonth(leagueKey, league, data) {
+  const status = document.querySelector("#motm-status");
+  const body = document.querySelector("#motm-standings");
+  const liveStatus = document.querySelector("#motm-live-status");
+  const liveBody = document.querySelector("#motm-live-standings");
+
+  if (!status || !body) {
+    return;
+  }
+
   const motmUrl = `./data/motm/${leagueKey}.json`;
+  const errorRow = (message) =>
+    `<tr><td colspan="5" class="empty-state">${escapeHtml(message)}</td></tr>`;
+  const liveErrorRow = (message) =>
+    `<tr><td colspan="4" class="empty-state">${escapeHtml(message)}</td></tr>`;
 
   try {
     const response = await fetch(motmUrl);
@@ -229,41 +436,15 @@ async function renderManagerOfTheMonth(leagueKey, data) {
     }
 
     const motm = await response.json();
-    const winners = Array.isArray(motm.winners) ? motm.winners : [];
-    const seasonPart = motm.season ? `${motm.season}` : "";
-    const namePart = motm.divisionName ?? "";
-    status.textContent = [seasonPart, namePart].filter(Boolean).join(" · ");
-
-    if (winners.length === 0) {
-      body.innerHTML =
-        '<tr><td colspan="4">No MOTM rows yet. Edit <code>docs/data/motm/' +
-        escapeHtml(leagueKey) +
-        ".json</code>.</td></tr>";
-      return;
-    }
-
-    body.innerHTML = winners
-      .map((row) => {
-        const rawEntry = row.entryId != null && row.entryId !== "" ? Number(row.entryId) : null;
-        const entryId = rawEntry != null && !Number.isNaN(rawEntry) ? rawEntry : null;
-        const resolved = entryId ? teamForEntry(data, entryId) : null;
-        const teamName = resolved?.entryName ?? row.team ?? "—";
-        const managerName = resolved?.playerName ?? row.manager ?? "—";
-        const teamCell = entryId ? teamLink(entryId, teamName) : escapeHtml(teamName);
-
-        return `
-        <tr>
-          <td>${escapeHtml(row.month ?? "—")}</td>
-          <td>${escapeHtml(row.gameweeks ?? "—")}</td>
-          <td>${teamCell}</td>
-          <td>${escapeHtml(managerName)}</td>
-        </tr>
-      `;
-      })
-      .join("");
+    renderMotmWinnersTable(leagueKey, data, motm);
+    renderMotmLiveLeaders(league, data, motm);
   } catch (error) {
     status.textContent = "";
-    body.innerHTML = `<tr><td colspan="4" class="empty-state">${escapeHtml(error.message)}</td></tr>`;
+    body.innerHTML = errorRow(error.message);
+    if (liveStatus && liveBody) {
+      liveStatus.textContent = "";
+      liveBody.innerHTML = liveErrorRow(error.message);
+    }
   }
 }
 
@@ -560,7 +741,7 @@ async function main() {
 
     renderLeagueStandings(league, data);
     renderCup([{ leagueName: league.name, cup: league.cup }]);
-    await renderManagerOfTheMonth(leagueKey, data);
+    await renderManagerOfTheMonth(leagueKey, league, data);
     return;
   }
 
@@ -575,7 +756,8 @@ main().catch((error) => {
     document.querySelector("#league-count") ??
     document.querySelector("#league-update-status") ??
     document.querySelector("#cup-status") ??
-    document.querySelector("#motm-status");
+    document.querySelector("#motm-status") ??
+    document.querySelector("#motm-live-status");
 
   if (statusElement) {
     statusElement.textContent = `Could not load data: ${error.message}`;

@@ -2,7 +2,7 @@
   "season": "2025-26",
   "divisionKey": "premier-league",
   "divisionName": "Premier League",
-  "_readme": "Set entryId to the FPL entry number (same as in URLs). Team and manager names are taken from league standings when entryId is set; use team/manager fields as fallbacks when entryId is null or missing from data.",
+  "_readme": "Set entryId to the FPL entry number for each winner you want listed (rows without entryId are hidden). Team and manager names come from standings when possible; gameweeks (e.g. 4-7) are summed from rvfa.json as raw GW points minus transfer point hits (event_transfers_cost). Each month's gameweek band must match docs/data/rvfa.json currentGameweek so the live top-3 table below can find the active month.",
   "winners": [
     {
       "month": "August",

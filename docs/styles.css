@@ -222,6 +222,22 @@ th {
   margin-top: 0;
 }
 
+.motm-live {
+  margin-top: 28px;
+}
+
+.motm-live h3 {
+  margin: 0 0 8px;
+  color: #e2e8f0;
+  font-size: 1.1rem;
+}
+
+.motm-live > p {
+  margin: 0 0 12px;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
 .cup-round h3 {
   margin: 0 0 10px;
   color: #e2e8f0;
