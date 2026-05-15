@@ -167,6 +167,28 @@ function eventLink(entryId, eventId) {
   return `<a class="team-link" href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
 }
 
+function abbreviateDivisionKey(key) {
+  if (key === "premier-league") {
+    return "Prem";
+  }
+
+  if (key === "championship") {
+    return "Champ";
+  }
+
+  return key;
+}
+
+function abbreviateLeagueLabel(name) {
+  const labels = {
+    "Premier League": "Prem",
+    Championship: "Champ",
+    RVFA: "RVFA",
+  };
+
+  return labels[name] ?? name;
+}
+
 function teamNameFor(data, entryId) {
   const rvfaTeam = data.rvfaLeague?.standings?.find((standing) => standing.entryId === entryId);
   if (rvfaTeam) {
@@ -196,8 +218,6 @@ function renderCombinedStandings(data) {
     return;
   }
 
-  const divisionNames = new Map(data.divisions.map((division) => [division.key, division.name]));
-
   if (data.combinedStandings.length === 0) {
     body.innerHTML = '<tr><td colspan="6">Run npm run fetch:data to populate standings.</td></tr>';
     return;
@@ -210,7 +230,7 @@ function renderCombinedStandings(data) {
         <tr>
           <td>${manager.rvfaRank}</td>
           <td>${teamLink(manager.entryId, teamNameFor(data, manager.entryId))}</td>
-          <td>${manager.divisions.map((division) => escapeHtml(divisionNames.get(division) ?? division)).join(", ")}</td>
+          <td>${manager.divisions.map((division) => escapeHtml(abbreviateDivisionKey(division))).join(", ")}</td>
           <td>${manager.totalPoints}</td>
           <td>${formatGameweekPoints(latest)}</td>
           <td>${escapeHtml(formatChip(latest?.activeChip))}</td>
@@ -261,11 +281,15 @@ function renderCup(cups, { includeLeagueName = false } = {}) {
             <table>
               <thead>
                 <tr>
-                  ${includeLeagueName ? "<th>League</th>" : ""}
+                  ${
+                    includeLeagueName
+                      ? `<th><span class="th-long">League</span><span class="th-short">Lg</span></th>`
+                      : ""
+                  }
                   <th>GW</th>
-                  <th>Team 1</th>
-                  <th>Score</th>
-                  <th>Team 2</th>
+                  <th><span class="th-long">Team 1</span><span class="th-short">T1</span></th>
+                  <th><span class="th-long">Score</span><span class="th-short">Scr</span></th>
+                  <th><span class="th-long">Team 2</span><span class="th-short">T2</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -273,7 +297,11 @@ function renderCup(cups, { includeLeagueName = false } = {}) {
                   .map(
                     (match) => `
                       <tr>
-                        ${includeLeagueName ? `<td>${escapeHtml(match.leagueName)}</td>` : ""}
+                        ${
+                          includeLeagueName
+                            ? `<td>${escapeHtml(abbreviateLeagueLabel(match.leagueName))}</td>`
+                            : ""
+                        }
                         <td>${match.event ?? "-"}</td>
                         <td>${teamLink(match.entry1.entryId, match.entry1.entryName)}</td>
                         <td>${match.entry1.points ?? "-"} - ${match.entry2.points ?? "-"}</td>
@@ -439,6 +467,10 @@ function renderManagerPage(data) {
 
 async function main() {
   const response = await fetch(dataUrl);
+  if (!response.ok) {
+    throw new Error(`Could not fetch ${dataUrl}: ${response.status} ${response.statusText}`);
+  }
+
   const data = await response.json();
   const page = document.body.dataset.page;
 
@@ -482,8 +514,22 @@ async function main() {
 }
 
 main().catch((error) => {
-  const element = document.querySelector("#generated-at") ?? document.querySelector("#league-count");
-  if (element) {
-    element.textContent = `Could not load data: ${error.message}`;
+  const statusElement =
+    document.querySelector("#generated-at") ??
+    document.querySelector("#league-count") ??
+    document.querySelector("#league-update-status") ??
+    document.querySelector("#cup-status");
+
+  if (statusElement) {
+    statusElement.textContent = `Could not load data: ${error.message}`;
+    return;
+  }
+
+  const mainElement = document.querySelector("main");
+  if (mainElement) {
+    const errorElement = document.createElement("p");
+    errorElement.className = "empty-state";
+    errorElement.textContent = `Could not load data: ${error.message}`;
+    mainElement.append(errorElement);
   }
 });
