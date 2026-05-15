@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RVFA Overall</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-page="overall">
+    <main class="page">
+      <nav class="site-nav" aria-label="RVFA pages">
+        <a href="./index.html">Home</a>
+        <a href="./overall.html" aria-current="page">RVFA Overall</a>
+        <a href="./premier-league.html">Premier League</a>
+        <a href="./championship.html">Championship</a>
+        <a href="./charter.html">Charter</a>
+      </nav>
+
+      <header class="hero">
+        <p class="eyebrow">RVFA</p>
+        <h1>Overall</h1>
+        <p id="generated-at">Loading data...</p>
+      </header>
+
+      <section class="card">
+        <div class="section-heading">
+          <h2>Combined League</h2>
+          <p>Premier League and Championship together</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Team</th>
+                <th>Divisions</th>
+                <th>Total</th>
+                <th>Latest GW</th>
+                <th>Chip</th>
+              </tr>
+            </thead>
+            <tbody id="combined-standings"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="section-heading">
+          <h2>Cups</h2>
+          <p id="cup-status">Loading cup data...</p>
+        </div>
+        <div id="cup-matchups"></div>
+      </section>
+    </main>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

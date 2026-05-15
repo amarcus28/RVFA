@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RVFA Manager</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-page="manager">
+    <main class="page">
+      <nav class="site-nav" aria-label="RVFA pages">
+        <a href="./index.html">Home</a>
+        <a href="./overall.html">RVFA Overall</a>
+        <a href="./premier-league.html">Premier League</a>
+        <a href="./championship.html">Championship</a>
+        <a href="./charter.html">Charter</a>
+      </nav>
+
+      <header class="hero">
+        <p class="eyebrow">RVFA Manager</p>
+        <h1 id="manager-name">Loading manager...</h1>
+        <p class="manager-meta" id="manager-summary">Loading scores...</p>
+      </header>
+
+      <section class="card">
+        <div class="section-heading">
+          <h2>Gameweek History</h2>
+          <p id="generated-at">Loading data...</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>GW</th>
+                <th>Score</th>
+                <th>Cumulative</th>
+                <th>Hit</th>
+                <th>Chip</th>
+                <th>Overall Rank</th>
+              </tr>
+            </thead>
+            <tbody id="manager-gameweeks"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

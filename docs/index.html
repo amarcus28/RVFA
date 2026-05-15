@@ -6,61 +6,42 @@
     <title>RVFA</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body>
+  <body data-page="home">
     <main class="page">
       <header class="hero">
         <p class="eyebrow">Fantasy Premier League</p>
         <h1>RVFA</h1>
         <p>
-          Combined standings for the Premier League and Championship divisions.
+          League tables, cup draws, and charter information for the RVFA.
         </p>
       </header>
 
-      <section class="card">
-        <div class="section-heading">
-          <h2>Combined League</h2>
-          <p id="generated-at">Loading data...</p>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Team</th>
-                <th>Divisions</th>
-                <th>Total</th>
-                <th>Latest GW</th>
-                <th>Hits</th>
-                <th>Chip</th>
-              </tr>
-            </thead>
-            <tbody id="combined-standings"></tbody>
-          </table>
-        </div>
+      <section class="link-grid" aria-label="RVFA sections">
+        <a class="link-card" href="./overall.html">
+          <span>RVFA Overall</span>
+          <strong>Combined table and all cup matchups</strong>
+        </a>
+        <a class="link-card" href="./premier-league.html">
+          <span>Premier League</span>
+          <strong>Division standings and cup</strong>
+        </a>
+        <a class="link-card" href="./championship.html">
+          <span>Championship</span>
+          <strong>Division standings and cup</strong>
+        </a>
+        <a class="link-card" href="./charter.html">
+          <span>Charter</span>
+          <strong>Rules, format, and league governance</strong>
+        </a>
       </section>
 
-      <section class="card">
+      <section class="card prose latest-update-card">
         <div class="section-heading">
-          <h2>Cups</h2>
-          <p id="cup-status">Loading cup data...</p>
+          <h2>Latest League Update</h2>
+          <p id="league-update-status">Loading update...</p>
         </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>League</th>
-                <th>GW</th>
-                <th>Team 1</th>
-                <th>Score</th>
-                <th>Team 2</th>
-              </tr>
-            </thead>
-            <tbody id="cup-matchups"></tbody>
-          </table>
-        </div>
+        <article id="league-update" class="league-update"></article>
       </section>
-
-      <section class="grid" id="division-standings"></section>
     </main>
 
     <script src="./app.js" type="module"></script>

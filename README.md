@@ -9,6 +9,13 @@ RVFA is a lightweight Fantasy Premier League data fetcher and static site for a 
 
 The site is built to be hosted from GitHub Pages with the `docs/` folder as the publishing source.
 
+The landing page links to:
+
+- `overall.html` for the combined RVFA table and all cup matchups
+- `premier-league.html` for Premier League standings and cup
+- `championship.html` for Championship standings and cup
+- `charter.html` for league rules and governance
+
 ## Setup
 
 Copy the example config and replace the placeholder league IDs with your FPL classic league IDs:
