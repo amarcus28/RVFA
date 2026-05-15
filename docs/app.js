@@ -507,52 +507,61 @@ function renderCup(cups, { includeLeagueName = false } = {}) {
   }
 
   const rounds = groupMatchesByRound(matches);
+  const colCount = includeLeagueName ? 5 : 4;
 
-  container.innerHTML = rounds
-    .map(
-      ([roundName, roundMatches]) => `
-        <section class="cup-round">
-          <h3>${escapeHtml(roundName)}</h3>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  ${
-                    includeLeagueName
-                      ? `<th><span class="th-long">League</span><span class="th-short">Lg</span></th>`
-                      : ""
-                  }
-                  <th>GW</th>
-                  <th><span class="th-long">Team 1</span><span class="th-short">T1</span></th>
-                  <th><span class="th-long">Score</span><span class="th-short">Scr</span></th>
-                  <th><span class="th-long">Team 2</span><span class="th-short">T2</span></th>
-                </tr>
-              </thead>
-              <tbody>
-                ${roundMatches
-                  .map(
-                    (match) => `
+  const theadCells = [
+    includeLeagueName
+      ? `<th class="cup-th-league"><span class="th-long">League</span><span class="th-short">Lg</span></th>`
+      : "",
+    `<th class="cup-th-gw">GW</th>`,
+    `<th class="cup-th-t1"><span class="th-long">Team 1</span><span class="th-short">T1</span></th>`,
+    `<th class="cup-th-score"><span class="th-long">Score</span><span class="th-short">Scr</span></th>`,
+    `<th class="cup-th-t2"><span class="th-long">Team 2</span><span class="th-short">T2</span></th>`,
+  ]
+    .filter(Boolean)
+    .join("");
+
+  const bodyRows = rounds.flatMap(([roundName, roundMatches]) => {
+    const titleRow = `
+        <tr class="cup-round-label">
+          <td colspan="${colCount}">
+            <h3 class="cup-round-heading">${escapeHtml(roundName)}</h3>
+          </td>
+        </tr>`;
+
+    const matchRows = roundMatches.map(
+      (match) => `
                       <tr>
                         ${
                           includeLeagueName
-                            ? `<td>${escapeHtml(abbreviateLeagueLabel(match.leagueName))}</td>`
+                            ? `<td class="cup-td-league">${escapeHtml(abbreviateLeagueLabel(match.leagueName))}</td>`
                             : ""
                         }
-                        <td>${match.event ?? "-"}</td>
-                        <td>${teamLink(match.entry1.entryId, match.entry1.entryName)}</td>
-                        <td>${match.entry1.points ?? "-"} - ${match.entry2.points ?? "-"}</td>
-                        <td>${teamLink(match.entry2.entryId, match.entry2.entryName)}</td>
+                        <td class="cup-td-gw">${match.event ?? "-"}</td>
+                        <td class="cup-td-t1">${teamLink(match.entry1.entryId, match.entry1.entryName)}</td>
+                        <td class="cup-td-score">${match.entry1.points ?? "-"} – ${match.entry2.points ?? "-"}</td>
+                        <td class="cup-td-t2">${teamLink(match.entry2.entryId, match.entry2.entryName)}</td>
                       </tr>
                     `,
-                  )
-                  .join("")}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      `,
-    )
-    .join("");
+    );
+
+    return [titleRow, ...matchRows];
+  });
+
+  container.innerHTML = `
+        <div class="table-wrap cup-table-wrap">
+          <table class="cup-matchups">
+            <thead>
+              <tr>
+                ${theadCells}
+              </tr>
+            </thead>
+            <tbody>
+              ${bodyRows.join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
 }
 
 function groupMatchesByRound(matches) {

@@ -328,12 +328,77 @@ th {
   text-transform: uppercase;
 }
 
-.cup-round {
-  margin-top: 24px;
+.cup-table-wrap {
+  margin-top: 0;
 }
 
-.cup-round:first-child {
-  margin-top: 0;
+.cup-matchups {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.cup-matchups .cup-th-league,
+.cup-matchups .cup-td-league {
+  width: 9%;
+}
+
+.cup-matchups .cup-th-gw,
+.cup-matchups .cup-td-gw {
+  width: 4.5rem;
+}
+
+.cup-matchups .cup-th-score,
+.cup-matchups .cup-td-score {
+  width: 7.25rem;
+  min-width: 7.25rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.cup-matchups .cup-th-t1,
+.cup-matchups .cup-td-t1,
+.cup-matchups .cup-th-t2,
+.cup-matchups .cup-td-t2 {
+  width: auto;
+}
+
+.cup-matchups .cup-th-t1,
+.cup-matchups .cup-td-t1 {
+  text-align: left;
+}
+
+.cup-matchups .cup-th-t2,
+.cup-matchups .cup-td-t2 {
+  text-align: right;
+}
+
+.cup-matchups .cup-td-t1,
+.cup-matchups .cup-td-t2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cup-matchups thead th {
+  padding-bottom: 14px;
+}
+
+.cup-round-label td {
+  padding: 20px 10px 8px;
+  border-bottom: none;
+  vertical-align: bottom;
+  background: transparent;
+}
+
+.cup-table-wrap tbody tr.cup-round-label:first-child td {
+  padding-top: 22px;
+}
+
+.cup-round-heading {
+  margin: 0;
+  color: #e2e8f0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: left;
 }
 
 .motm-live {
@@ -350,11 +415,6 @@ th {
   margin: 0 0 12px;
   color: #94a3b8;
   font-size: 0.9rem;
-}
-
-.cup-round h3 {
-  margin: 0 0 10px;
-  color: #e2e8f0;
 }
 
 .empty-state {
@@ -514,8 +574,20 @@ th {
     font-weight: 600;
   }
 
-  .cup-round h3 {
+  .cup-round-heading {
     font-size: 1rem;
+  }
+
+  .cup-matchups .cup-td-score,
+  .cup-matchups .cup-th-score {
+    white-space: nowrap;
+    word-break: normal;
+  }
+
+  .cup-matchups .cup-td-t1,
+  .cup-matchups .cup-td-t2 {
+    white-space: nowrap;
+    word-break: normal;
   }
 
   .chip-reset-row td {
