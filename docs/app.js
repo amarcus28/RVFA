@@ -613,7 +613,16 @@ function renderCombinedStandings(data) {
     .join("");
 }
 
-function renderCup(cups, { includeLeagueName = false } = {}) {
+const CUP_PRIZE_CAPTION = {
+  overall: "Prize: $50 and a guaranteed Premier League spot next season",
+  "premier-league": "Prize: $30",
+  championship: "Prize: Guaranteed promotion",
+};
+
+const PREMIER_LEAGUE_STANDINGS_PRIZE_CAPTION =
+  "Season prizes: $414 (1st), $207 (2nd), $69 (3rd)";
+
+function renderCup(cups, { includeLeagueName = false, prizeCaption = null } = {}) {
   const status = document.querySelector("#cup-status");
   const container = document.querySelector("#cup-matchups");
   if (!status || !container) {
@@ -685,9 +694,14 @@ function renderCup(cups, { includeLeagueName = false } = {}) {
     return [titleRow, ...matchRows];
   });
 
+  const captionHtml = prizeCaption
+    ? `<caption class="cup-prize-caption">${escapeHtml(prizeCaption)}</caption>`
+    : "";
+
   container.innerHTML = `
         <div class="table-wrap cup-table-wrap">
           <table class="cup-matchups">
+            ${captionHtml}
             <thead>
               <tr>
                 ${theadCells}
@@ -745,6 +759,24 @@ function renderLeagueStandings(league, data) {
       `;
     })
     .join("");
+
+  const table = body.closest("table");
+  if (table) {
+    const captionSelector = "caption.standings-prize-caption";
+    const existingCaption = table.querySelector(captionSelector);
+
+    if (league.key === "premier-league") {
+      const caption = existingCaption ?? document.createElement("caption");
+      caption.className = "standings-prize-caption";
+      caption.textContent = PREMIER_LEAGUE_STANDINGS_PRIZE_CAPTION;
+
+      if (!existingCaption) {
+        table.insertBefore(caption, table.firstElementChild);
+      }
+    } else if (existingCaption) {
+      existingCaption.remove();
+    }
+  }
 }
 
 function standingsRowClass(league, team) {
@@ -1355,7 +1387,7 @@ async function main() {
           cup: data.rvfaLeague?.cup ?? data.cup,
         },
       ],
-      { includeLeagueName: false },
+      { includeLeagueName: false, prizeCaption: CUP_PRIZE_CAPTION.overall },
     );
     return;
   }
@@ -1369,7 +1401,9 @@ async function main() {
     }
 
     renderLeagueStandings(league, data);
-    renderCup([{ leagueName: league.name, cup: league.cup }]);
+    renderCup([{ leagueName: league.name, cup: league.cup }], {
+      prizeCaption: CUP_PRIZE_CAPTION[leagueKey] ?? null,
+    });
     await renderManagerOfTheMonth(leagueKey, league, data);
     return;
   }

@@ -401,6 +401,25 @@ th {
   width: 100%;
 }
 
+.cup-matchups > caption.cup-prize-caption,
+caption.standings-prize-caption {
+  caption-side: top;
+  text-align: left;
+  padding: 14px 16px;
+  margin: 0 0 4px;
+  font-size: clamp(1rem, 2.8vw, 1.12rem);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #f1f5f9;
+  line-height: 1.45;
+  border-radius: 14px;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  background: linear-gradient(145deg, rgba(56, 189, 248, 0.14), rgba(15, 23, 42, 0.6));
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
 .cup-matchups .cup-th-league,
 .cup-matchups .cup-td-league {
   width: 9%;
