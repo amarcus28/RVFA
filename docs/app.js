@@ -1060,6 +1060,67 @@ function divisionLabels(data, divisionKeys) {
   return divisionKeys.map((key) => divisionNames.get(key) ?? key);
 }
 
+const MAX_RVFA_FREE_TRANSFER_BANK = 5;
+
+/**
+ * Opening free-transfer bank at the start of each gameweek (before that week's moves).
+ * Rules: bank is 0 before GW1 in the simulated sequence; accumulates +1 per gameweek
+ * (cap 5); Free Hit skips that week's +1 while Wildcard still receives it;
+ * wildcard/free hit weeks do not spend the bank when counting moves.
+ *
+ * Weeks missing from {@link manager.eventDetails} are assumed to be ordinary weeks with
+ * zero transfers — so late snapshots still roll the bank forward.
+ */
+function rvfaOpeningFreeTransfersByGameweek(manager) {
+  const details = [...(manager?.eventDetails ?? [])].sort((a, b) => Number(a.event) - Number(b.event));
+
+  /** @type {Map<number, number>} */
+  const map = new Map();
+
+  if (!details.length) {
+    return map;
+  }
+
+  const applyNormalClose = (opening, transfersMade) => {
+    const rolled = Math.max(0, opening - transfersMade);
+
+    return Math.min(MAX_RVFA_FREE_TRANSFER_BANK, rolled + 1);
+  };
+
+  let opening = 0;
+  let prevGw = 0;
+
+  for (const ev of details) {
+    const gw = Number(ev.event);
+
+    if (!Number.isFinite(gw)) {
+      continue;
+    }
+
+    for (let phantom = prevGw + 1; phantom < gw; phantom += 1) {
+      opening = applyNormalClose(opening, 0);
+    }
+
+    map.set(gw, opening);
+
+    const h = ev.entryHistory ?? {};
+    const transfersMade = Number(h.event_transfers) || 0;
+    const chipKey = normalizeManagerChipKey(ev.activeChip);
+
+    if (chipKey === "wildcard" || chipKey === "freehit") {
+      const increment = chipKey === "freehit" ? 0 : 1;
+
+      opening = Math.min(MAX_RVFA_FREE_TRANSFER_BANK, opening + increment);
+    } else {
+      opening = applyNormalClose(opening, transfersMade);
+    }
+
+    prevGw = gw;
+  }
+
+  return map;
+}
+
 function transfersForGameweek(manager, eventId) {
   const id = Number(eventId);
   const list = manager?.transfers ?? [];
@@ -2229,6 +2290,8 @@ function renderManagerPage(data) {
   summary.textContent = `${team.playerName} · ${divisionLabels(data, manager.divisions).join(", ") || "RVFA"}`;
 
   initManagerDashboard(manager, data, team);
+  const openingFtByGameweek = rvfaOpeningFreeTransfersByGameweek(manager);
+
   body.innerHTML = [...manager.eventDetails]
     .reverse()
     .map((event) => {
@@ -2250,15 +2313,18 @@ function renderManagerPage(data) {
         </tr>`
         : "";
 
+      const openingFt = openingFtByGameweek.get(Number(event.event));
+      const openingFtDisplay = openingFt !== undefined ? formatCount(openingFt) : "—";
+
       return `
         ${chipResetRow}
         <tr>
           <td class="manager-gw-expand-cell">${expandCtrl}</td>
           <td>${eventLink(manager.id, event.event)}</td>
-          <td>${history.points != null ? formatCount(history.points) : "-"}</td>
-          <td>${history.total_points != null ? formatCount(history.total_points) : "-"}</td>
-          <td>${history.event_transfers_cost ? `-${formatCount(history.event_transfers_cost)}` : "-"}</td>
+          <td>${formatGameweekPoints({ entryHistory: history })}</td>
           <td>${escapeHtml(formatChip(event.activeChip))}</td>
+          <td>${openingFtDisplay}</td>
+          <td>${history.total_points != null ? formatCount(history.total_points) : "-"}</td>
           <td>${history.overall_rank != null ? formatCount(history.overall_rank) : "-"}</td>
         </tr>
         ${transfersDetailRow}
