@@ -615,6 +615,58 @@ caption.standings-prize-caption {
   height: auto;
 }
 
+/* Chip markers: stroke/fill from classes so colors reliably apply in inline SVG. */
+.manager-chart-svg .manager-chart-chip-marker circle {
+  fill: #0f172a;
+  stroke-width: 1.75px;
+}
+
+.manager-chart-svg .manager-chart-chip-marker text {
+  font-size: 8.5px;
+  font-weight: 800;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.manager-chart-svg .manager-chart-chip-marker--tc circle {
+  stroke: #e11d48;
+}
+
+.manager-chart-svg .manager-chart-chip-marker--tc text {
+  fill: #e11d48;
+}
+
+.manager-chart-svg .manager-chart-chip-marker--bb circle {
+  stroke: #4ade80;
+}
+
+.manager-chart-svg .manager-chart-chip-marker--bb text {
+  fill: #4ade80;
+}
+
+.manager-chart-svg .manager-chart-chip-marker--fh circle {
+  stroke: #fb923c;
+}
+
+.manager-chart-svg .manager-chart-chip-marker--fh text {
+  fill: #fb923c;
+}
+
+.manager-chart-svg .manager-chart-chip-marker--wc circle {
+  stroke: #c4b5fd;
+}
+
+.manager-chart-svg .manager-chart-chip-marker--wc text {
+  fill: #c4b5fd;
+}
+
+.manager-chart-svg .manager-chart-chip-marker--other circle {
+  stroke: #38bdf8;
+}
+
+.manager-chart-svg .manager-chart-chip-marker--other text {
+  fill: #38bdf8;
+}
+
 .manager-chart-tooltip {
   position: fixed;
   z-index: 2000;

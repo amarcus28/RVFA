@@ -340,6 +340,8 @@ function findMotmPeriodForCurrentGameweek(winners, currentGw) {
 }
 
 function formatChip(chip) {
+  const key = normalizeManagerChipKey(chip);
+
   const chipLabels = {
     "3xc": "TC",
     bboost: "BB",
@@ -347,7 +349,65 @@ function formatChip(chip) {
     wildcard: "WC",
   };
 
-  return chipLabels[chip] ?? chip ?? "-";
+  if (chipLabels[key]) {
+    return chipLabels[key];
+  }
+
+  return chip == null || chip === "" ? "-" : String(chip);
+}
+
+function normalizeManagerChipKey(chip) {
+  if (chip == null || chip === "") {
+    return "";
+  }
+
+  const raw = String(chip).trim().replace(/[\u200B-\u200D\uFEFF]/g, "");
+  const lower = raw.toLowerCase();
+
+  const aliases = {
+    bench_boost: "bboost",
+    benchboost: "bboost",
+    triple_captain: "3xc",
+    triplecaptain: "3xc",
+  };
+
+  return aliases[lower] ?? lower;
+}
+
+/** Suffix for CSS: manager-chart-chip-marker--{suffix} */
+function managerChartChipKindClass(chip) {
+  const key = normalizeManagerChipKey(chip);
+
+  if (key === "3xc") {
+    return "tc";
+  }
+
+  if (key === "bboost") {
+    return "bb";
+  }
+
+  if (key === "freehit") {
+    return "fh";
+  }
+
+  if (key === "wildcard") {
+    return "wc";
+  }
+
+  return "other";
+}
+
+function managerChartChipAccent(chip) {
+  const key = normalizeManagerChipKey(chip);
+
+  const byChip = {
+    "3xc": "#e11d48",
+    bboost: "#4ade80",
+    freehit: "#fb923c",
+    wildcard: "#c4b5fd",
+  };
+
+  return byChip[key] ?? "#38bdf8";
 }
 
 function managerUrl(entryId) {
@@ -1142,10 +1202,18 @@ function renderManagerPerformanceChart(svg, tooltip, rows, totalPlayers) {
     .filter((r) => r.chip)
     .map((r) => {
       const cx = xAt(r.gw);
-      const cy = H - pad.b + 16;
-      const tip = `${formatChip(r.chip)} GW${r.gw}`;
+      const cy = H - pad.b + 8;
+      const label = formatChip(r.chip);
+      const tip = `${label} · GW${r.gw}`;
+      const kind = managerChartChipKindClass(r.chip);
+      const accent = managerChartChipAccent(r.chip);
+      const fillBg = "#0f172a";
 
-      return `<circle cx="${cx.toFixed(1)}" cy="${cy}" r="5" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5"><title>${escapeHtml(tip)}</title></circle>`;
+      return `<g class="manager-chart-chip-marker manager-chart-chip-marker--${kind}">
+        <circle cx="${cx.toFixed(1)}" cy="${cy}" r="9" fill="${fillBg}" stroke="${accent}" stroke-width="1.75" style="fill:${fillBg};stroke:${accent};stroke-width:1.75px"/>
+        <text x="${cx.toFixed(1)}" y="${cy}" text-anchor="middle" dominant-baseline="central" fill="${accent}" font-size="8.5" font-weight="800" font-family="system-ui,-apple-system,BlinkMacSystemFont,sans-serif" style="fill:${accent}">${escapeHtml(label)}</text>
+        <title>${escapeHtml(tip)}</title>
+      </g>`;
     })
     .join("");
 
@@ -1161,7 +1229,7 @@ function renderManagerPerformanceChart(svg, tooltip, rows, totalPlayers) {
   svg.setAttribute("role", "img");
   svg.setAttribute(
     "aria-label",
-    "Line chart of overall rank, gameweek rank, gameweek points, and bench points by gameweek",
+    "Line chart of overall rank, gameweek rank, gameweek points, and bench points by gameweek; chip markers show TC, BB, FH, or WC where played",
   );
   svg.innerHTML = `
     <line class="manager-chart-crosshair" x1="0" y1="${pad.t}" x2="0" y2="${pad.t + plotH}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4 4" opacity="0" pointer-events="none"/>
