@@ -231,6 +231,113 @@ async function renderHomePage() {
   }
 }
 
+function lastCompletedGameweek(data) {
+  const list = data.gameweeks;
+
+  if (Array.isArray(list) && list.length) {
+    const finishedIds = list.filter((g) => g.isFinished).map((g) => g.id);
+
+    if (finishedIds.length) {
+      return Math.max(...finishedIds);
+    }
+  }
+
+  const cur = data.currentGameweek != null && Number.isFinite(Number(data.currentGameweek)) ? Number(data.currentGameweek) : null;
+
+  if (cur != null && cur > 1) {
+    return cur - 1;
+  }
+
+  return null;
+}
+
+function netGameweekScore(manager, gw) {
+  const ev = manager?.eventDetails?.find((e) => e.event === gw);
+  const h = ev?.entryHistory;
+
+  if (h?.points == null || !Number.isFinite(Number(h.points))) {
+    return null;
+  }
+
+  const raw = Number(h.points);
+  const hit = Number(h.event_transfers_cost) || 0;
+
+  return raw - hit;
+}
+
+function computeManagerOfTheWeek(data) {
+  const gw = lastCompletedGameweek(data);
+
+  if (gw == null) {
+    return null;
+  }
+
+  const gwMeta = data.gameweeks?.find((g) => g.id === gw);
+  const gwLabel = gwMeta?.name ?? `Gameweek ${gw}`;
+  const managers = data.managers ?? [];
+  const scored = managers
+    .map((manager) => {
+      const score = netGameweekScore(manager, gw);
+
+      if (score == null) {
+        return null;
+      }
+
+      return { manager, score };
+    })
+    .filter(Boolean);
+
+  if (!scored.length) {
+    return null;
+  }
+
+  const maxScore = Math.max(...scored.map((s) => s.score));
+  const winners = scored
+    .filter((s) => s.score === maxScore)
+    .sort((a, b) => a.manager.id - b.manager.id);
+
+  return { gw, gwLabel, maxScore, winners };
+}
+
+function renderManagerOfTheWeekHome(data) {
+  const status = document.querySelector("#motw-home-status");
+  const body = document.querySelector("#motw-home");
+
+  if (!status || !body) {
+    return;
+  }
+
+  const result = computeManagerOfTheWeek(data);
+
+  if (!result) {
+    status.textContent = "No completed gameweek scores yet.";
+    body.innerHTML = "";
+
+    return;
+  }
+
+  const { gwLabel, maxScore, winners } = result;
+  const joint = winners.length > 1 ? ` · ${formatCount(winners.length)} tied` : "";
+
+  status.textContent = `${gwLabel} · ${formatCount(maxScore)} pts${joint}`;
+
+  body.innerHTML = winners
+    .map(({ manager }) => {
+      const team = teamForEntry(data, manager.id);
+      const teamName = team?.entryName ?? `Team ${manager.id}`;
+      const playerName = team?.playerName ?? "";
+      const divs = divisionLabels(data, manager.divisions ?? []).filter(Boolean).join(", ");
+      const metaBits = [playerName, divs].filter(Boolean);
+      const meta = metaBits.length ? metaBits.join(" · ") : "";
+
+      return `<article class="motw-home-winner">
+        <div class="motw-home-winner-name">${teamLink(manager.id, teamName)}</div>
+        ${meta ? `<p class="motw-home-winner-meta">${escapeHtml(meta)}</p>` : ""}
+      </article>`;
+    })
+    .join("");
+}
+
 function latestGameweek(manager) {
   if (Array.isArray(manager.gameweeks)) {
     return [...manager.gameweeks].reverse().find((gameweek) => gameweek.points != null);
@@ -2175,6 +2282,7 @@ async function main() {
 
   if (page === "home") {
     startGameweekDeadlineCountdown();
+    renderManagerOfTheWeekHome(data);
     await renderHomePage();
     return;
   }
@@ -2219,6 +2327,7 @@ main().catch((error) => {
   const statusElement =
     document.querySelector("#generated-at") ??
     document.querySelector("#league-count") ??
+    document.querySelector("#motw-home-status") ??
     document.querySelector("#league-update-status") ??
     document.querySelector("#cup-status") ??
     document.querySelector("#motm-status") ??

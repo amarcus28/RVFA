@@ -885,6 +885,47 @@ caption.standings-prize-caption {
   font-size: 0.82rem;
 }
 
+.motw-home-status {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #94a3b8;
+}
+
+.motw-home-body {
+  display: grid;
+  gap: 14px;
+}
+
+.motw-home-winner {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.motw-home-winner-name {
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.motw-home-winner-name .team-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.motw-home-winner-name .team-link:hover {
+  text-decoration: underline;
+  color: #38bdf8;
+}
+
+.motw-home-winner-meta {
+  margin: 6px 0 0;
+  font-size: 0.84rem;
+  color: #94a3b8;
+  line-height: 1.35;
+}
+
 .empty-state {
   margin-bottom: 0;
   color: #94a3b8;
