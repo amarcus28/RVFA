@@ -239,6 +239,77 @@ h2 {
   margin-top: 40px;
 }
 
+.gw-deadline-card {
+  margin-bottom: 28px;
+}
+
+.gw-deadline-heading {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.gw-deadline-datetime {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #94a3b8;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.gw-deadline-countdown {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px 12px;
+  margin: 0 0 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.gw-deadline-unit {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 10px 14px;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  border-radius: 12px;
+  background: rgba(56, 189, 248, 0.07);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.gw-deadline-unit-value {
+  font-size: clamp(1.35rem, 5vw, 1.85rem);
+  letter-spacing: 0.04em;
+  color: #38bdf8;
+}
+
+.gw-deadline-unit-label {
+  font-size: 0.72em;
+  font-weight: 700;
+  color: #7dd3fc;
+  text-transform: lowercase;
+  opacity: 0.95;
+}
+
+.gw-deadline-countdown.gw-deadline-countdown--done {
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  font-size: clamp(1.05rem, 3.8vw, 1.3rem);
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.gw-deadline-note {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
 .section-heading {
   display: flex;
   align-items: baseline;

@@ -126,6 +126,88 @@ function markdownToHtml(markdown) {
   return html.join("");
 }
 
+/** Instant when squads lock: May 24, 2026 at 6:30am US Pacific (PDT). */
+const GW_DEADLINE_MS = Date.UTC(2026, 4, 24, 13, 30, 0);
+
+function formatDeadlineInLocalTime(ms) {
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  }).format(new Date(ms));
+}
+
+function parseCountdownParts(ms) {
+  if (ms <= 0) {
+    return null;
+  }
+
+  const totalSec = Math.floor(ms / 1000);
+  const sec = totalSec % 60;
+  const min = Math.floor(totalSec / 60) % 60;
+  const hour = Math.floor(totalSec / 3600) % 24;
+  const day = Math.floor(totalSec / 86400);
+
+  return { day, hour, min, sec };
+}
+
+function applyCountdownToDom(el, parts) {
+  el.querySelector('[data-part="d"]').textContent = String(parts.day);
+  el.querySelector('[data-part="h"]').textContent = String(parts.hour).padStart(2, "0");
+  el.querySelector('[data-part="m"]').textContent = String(parts.min).padStart(2, "0");
+  el.querySelector('[data-part="s"]').textContent = String(parts.sec).padStart(2, "0");
+  el.setAttribute(
+    "aria-label",
+    `${parts.day} days, ${parts.hour} hours, ${parts.min} minutes, ${parts.sec} seconds until the deadline`,
+  );
+}
+
+function startGameweekDeadlineCountdown() {
+  const el = document.querySelector("#gw-deadline-countdown");
+  const datetimeEl = document.querySelector("#gw-deadline-datetime");
+
+  if (!el) {
+    return;
+  }
+
+  if (datetimeEl) {
+    datetimeEl.textContent = formatDeadlineInLocalTime(GW_DEADLINE_MS);
+  }
+
+  const tick = () => {
+    const remaining = GW_DEADLINE_MS - Date.now();
+
+    if (remaining <= 0) {
+      el.classList.add("gw-deadline-countdown--done");
+      el.removeAttribute("aria-label");
+      el.textContent = "Deadline has passed — good luck this gameweek.";
+      return false;
+    }
+
+    const parts = parseCountdownParts(remaining);
+
+    if (!parts) {
+      return false;
+    }
+
+    applyCountdownToDom(el, parts);
+    return true;
+  };
+
+  if (!tick()) {
+    return;
+  }
+
+  const id = window.setInterval(() => {
+    if (!tick()) {
+      window.clearInterval(id);
+    }
+  }, 1000);
+}
+
 async function renderHomePage() {
   const status = document.querySelector("#league-update-status");
   const container = document.querySelector("#league-update");
@@ -1259,6 +1341,7 @@ async function main() {
   setGeneratedAt(data);
 
   if (page === "home") {
+    startGameweekDeadlineCountdown();
     await renderHomePage();
     return;
   }
