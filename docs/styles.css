@@ -868,6 +868,58 @@ caption.standings-prize-caption {
   margin-bottom: 12px;
 }
 
+.league-chart-legend-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.league-chart-legend-actions button {
+  padding: 2px 0;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #94a3b8;
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 4px;
+  transition:
+    color 0.14s ease,
+    text-decoration-color 0.14s ease;
+}
+
+.league-chart-legend-actions button:hover {
+  color: #bae6fd;
+  text-decoration-color: rgba(186, 230, 253, 0.45);
+}
+
+.league-chart-legend-actions button:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 4px;
+  border-radius: 4px;
+  text-decoration: none;
+}
+
+.league-chart-legend-actions .league-chart-select-all::after {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 0.95em;
+  margin: 0 10px;
+  vertical-align: -0.12em;
+  background: rgba(148, 163, 184, 0.45);
+}
+
 .league-chart-tooltip {
   min-width: 220px;
   max-width: min(340px, 94vw);

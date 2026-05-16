@@ -1509,38 +1509,38 @@ function linePathLeagueSeries(gws, norms, xAt, yAt) {
   return parts.join(" ");
 }
 
+function applyLeagueChartSeriesToggle(section, toggle) {
+  const id = toggle.dataset.entryId;
+
+  if (!id) {
+    return;
+  }
+
+  const vis = toggle.checked ? "visible" : "hidden";
+
+  for (const svg of section.querySelectorAll(".league-season-chart-svg")) {
+    for (const el of svg.querySelectorAll(`[data-entry-id="${id}"]`)) {
+      el.setAttribute("visibility", vis);
+    }
+  }
+
+  const item = toggle.closest(".manager-chart-legend-item");
+
+  if (item) {
+    item.classList.toggle("is-off", !toggle.checked);
+  }
+}
+
 function wireLeagueChartLegend(section) {
   const toggles = [...section.querySelectorAll(".league-chart-series-toggle")];
 
-  const apply = (toggle) => {
-    const id = toggle.dataset.entryId;
-
-    if (!id) {
-      return;
-    }
-
-    const vis = toggle.checked ? "visible" : "hidden";
-
-    for (const svg of section.querySelectorAll(".league-season-chart-svg")) {
-      for (const el of svg.querySelectorAll(`[data-entry-id="${id}"]`)) {
-        el.setAttribute("visibility", vis);
-      }
-    }
-
-    const item = toggle.closest(".manager-chart-legend-item");
-
-    if (item) {
-      item.classList.toggle("is-off", !toggle.checked);
-    }
-  };
-
   const onChange = (event) => {
-    apply(event.target);
+    applyLeagueChartSeriesToggle(section, event.target);
   };
 
   for (const toggle of toggles) {
     toggle.addEventListener("change", onChange);
-    apply(toggle);
+    applyLeagueChartSeriesToggle(section, toggle);
   }
 
   return () => {
@@ -1828,8 +1828,35 @@ function renderLeagueSeasonCharts(league, data) {
 
   const removeLegend = wireLeagueChartLegend(section);
 
+  const selectAllBtn = section.querySelector(".league-chart-select-all");
+  const deselectAllBtn = section.querySelector(".league-chart-deselect-all");
+
+  /** @type {() => void} */
+  let removeBulkSeriesHandlers = () => {};
+
+  if (selectAllBtn && deselectAllBtn) {
+    const applyAllChecked = (checked) => {
+      for (const toggle of section.querySelectorAll(".league-chart-series-toggle")) {
+        toggle.checked = checked;
+        applyLeagueChartSeriesToggle(section, toggle);
+      }
+    };
+
+    const onSelectAll = () => applyAllChecked(true);
+    const onDeselectAll = () => applyAllChecked(false);
+
+    selectAllBtn.addEventListener("click", onSelectAll);
+    deselectAllBtn.addEventListener("click", onDeselectAll);
+
+    removeBulkSeriesHandlers = () => {
+      selectAllBtn.removeEventListener("click", onSelectAll);
+      deselectAllBtn.removeEventListener("click", onDeselectAll);
+    };
+  }
+
   section._leagueChartTeardown = () => {
     removeLegend();
+    removeBulkSeriesHandlers();
     rankSvg.removeEventListener("pointermove", onMove);
     rankSvg.removeEventListener("pointerleave", onLeave);
     rankSvg.removeEventListener("pointerdown", onMove);
