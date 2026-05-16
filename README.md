@@ -14,7 +14,7 @@ The landing page links to:
 - `overall.html` for the combined RVFA table and all cup matchups
 - `premier-league.html` for Premier League standings and cup
 - `championship.html` for Championship standings and cup
-- `charter.html` for league rules and governance
+- `charter.html` for Rules & Prizes and the charter PDF
 
 ## Setup
 
