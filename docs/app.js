@@ -892,6 +892,84 @@ function divisionLabels(data, divisionKeys) {
   return divisionKeys.map((key) => divisionNames.get(key) ?? key);
 }
 
+function transfersForGameweek(manager, eventId) {
+  const id = Number(eventId);
+  const list = manager?.transfers ?? [];
+
+  return list
+    .filter((t) => Number(t.event) === id)
+    .sort((a, b) => String(a.time ?? "").localeCompare(String(b.time ?? "")));
+}
+
+function formatTransferPlayerLabel(lookup, elementId) {
+  if (elementId == null || elementId === "") {
+    return "—";
+  }
+
+  const key = String(elementId);
+  const row = lookup?.[key];
+
+  if (!row?.webName) {
+    return `Player #${formatCount(elementId)}`;
+  }
+
+  const team = row.teamShort ? ` (${row.teamShort})` : "";
+
+  return `${row.webName}${team}`;
+}
+
+function renderGameweekTransfersDetail(manager, data, eventId) {
+  const transfers = transfersForGameweek(manager, eventId);
+
+  if (!transfers.length) {
+    return '<p class="manager-transfer-empty">No transfer breakdown for this gameweek.</p>';
+  }
+
+  const items = transfers
+    .map((t) => {
+      const outLabel = formatTransferPlayerLabel(data.playerLookup, t.elementOut);
+      const inLabel = formatTransferPlayerLabel(data.playerLookup, t.elementIn);
+
+      return `<li class="manager-transfer-item"><span class="manager-transfer-out">${escapeHtml(outLabel)}</span> → <span class="manager-transfer-in">${escapeHtml(inLabel)}</span></li>`;
+    })
+    .join("");
+
+  return `<ul class="manager-transfer-list">${items}</ul>`;
+}
+
+function wireManagerGameweekTransferRows(tbody) {
+  if (!tbody) {
+    return;
+  }
+
+  tbody.addEventListener("click", (event) => {
+    const btn = event.target.closest(".gw-transfer-expand");
+
+    if (!btn || !tbody.contains(btn)) {
+      return;
+    }
+
+    event.preventDefault();
+    const gw = btn.getAttribute("data-gw-expand");
+
+    if (gw == null) {
+      return;
+    }
+
+    const expanded = btn.getAttribute("aria-expanded") === "true";
+    const next = !expanded;
+
+    btn.setAttribute("aria-expanded", String(next));
+    btn.textContent = next ? "\u25BE" : "\u25B8";
+
+    const detailRow = tbody.querySelector(`tr.manager-gw-transfers-row[data-gw-transfers="${gw}"]`);
+
+    if (detailRow) {
+      detailRow.hidden = !next;
+    }
+  });
+}
+
 const MANAGER_CHART_COLORS = {
   overall: "#38bdf8",
   gwRank: "#4ade80",
@@ -1395,7 +1473,7 @@ function renderManagerPage(data) {
   if (!manager || !team) {
     name.textContent = "Manager Not Found";
     summary.textContent = "Check the manager link and try again.";
-    body.innerHTML = '<tr><td colspan="6">No manager data found.</td></tr>';
+    body.innerHTML = '<tr><td colspan="7">No manager data found.</td></tr>';
     hideManagerDashboard();
 
     return;
@@ -1411,12 +1489,25 @@ function renderManagerPage(data) {
       const history = event.entryHistory ?? {};
       const chipResetRow =
         event.event === 19
-          ? '<tr class="chip-reset-row"><td colspan="6">Chips reset between Gameweek 19 and Gameweek 20</td></tr>'
+          ? '<tr class="chip-reset-row"><td colspan="7">Chips reset between Gameweek 19 and Gameweek 20</td></tr>'
           : "";
+
+      const transfersHere = transfersForGameweek(manager, event.event);
+      const hasTransferBreakdown = transfersHere.length > 0;
+      const expandCtrl = hasTransferBreakdown
+        ? `<button type="button" class="gw-transfer-expand" data-gw-expand="${event.event}" aria-expanded="false" aria-label="Show transfers for gameweek ${event.event}">\u25B8</button>`
+        : `<span class="gw-transfer-expand-slot" aria-hidden="true"></span>`;
+
+      const transfersDetailRow = hasTransferBreakdown
+        ? `<tr class="manager-gw-transfers-row" hidden data-gw-transfers="${event.event}">
+          <td colspan="7">${renderGameweekTransfersDetail(manager, data, event.event)}</td>
+        </tr>`
+        : "";
 
       return `
         ${chipResetRow}
         <tr>
+          <td class="manager-gw-expand-cell">${expandCtrl}</td>
           <td>${eventLink(manager.id, event.event)}</td>
           <td>${history.points != null ? formatCount(history.points) : "-"}</td>
           <td>${history.total_points != null ? formatCount(history.total_points) : "-"}</td>
@@ -1424,13 +1515,16 @@ function renderManagerPage(data) {
           <td>${escapeHtml(formatChip(event.activeChip))}</td>
           <td>${history.overall_rank != null ? formatCount(history.overall_rank) : "-"}</td>
         </tr>
+        ${transfersDetailRow}
       `;
     })
     .join("");
+
+  wireManagerGameweekTransferRows(body);
 }
 
 async function main() {
-  const response = await fetch(dataUrl);
+  const response = await fetch(dataUrl, { cache: "no-cache" });
   if (!response.ok) {
     throw new Error(`Could not fetch ${dataUrl}: ${response.status} ${response.statusText}`);
   }

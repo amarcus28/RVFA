@@ -166,8 +166,65 @@ async function fetchLeagueCup(leagueId) {
   };
 }
 
+function normalizeManagerTransfers(raw) {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw.map((row) => ({
+    event: row.event,
+    elementIn: row.element_in,
+    elementOut: row.element_out,
+    time: row.time ?? null,
+  }));
+}
+
+function collectTransferPlayerIds(managerDataByEntryId) {
+  const ids = new Set();
+
+  for (const manager of managerDataByEntryId.values()) {
+    for (const transfer of manager.transfers ?? []) {
+      const a = transfer.elementIn;
+      const b = transfer.elementOut;
+
+      if (a != null && Number.isFinite(Number(a))) {
+        ids.add(Number(a));
+      }
+
+      if (b != null && Number.isFinite(Number(b))) {
+        ids.add(Number(b));
+      }
+    }
+  }
+
+  return ids;
+}
+
+function buildPlayerLookup(bootstrap, playerIds) {
+  const teams = bootstrap?.teams ?? [];
+  const teamShortById = new Map(teams.map((team) => [team.id, team.short_name]));
+  const lookup = {};
+
+  for (const el of bootstrap?.elements ?? []) {
+    if (!playerIds.has(el.id)) {
+      continue;
+    }
+
+    lookup[String(el.id)] = {
+      webName: el.web_name,
+      teamShort: teamShortById.get(el.team) ?? "",
+    };
+  }
+
+  return lookup;
+}
+
 async function fetchManager(entryId, eventIds) {
-  const history = await fetchJson(`/entry/${entryId}/history/`);
+  const [history, transfersRaw] = await Promise.all([
+    fetchJson(`/entry/${entryId}/history/`),
+    tryFetchJson(`/entry/${entryId}/transfers/`),
+  ]);
+  const transfers = normalizeManagerTransfers(transfersRaw ?? []);
   const eventDetails = await Promise.all(
     eventIds.map(async (eventId) => {
       try {
@@ -193,6 +250,7 @@ async function fetchManager(entryId, eventIds) {
     current: history.current ?? [],
     past: history.past ?? [],
     chips: history.chips ?? [],
+    transfers,
     eventDetails: eventDetails.filter(Boolean),
   };
 }
@@ -399,12 +457,14 @@ async function main() {
     managerDataByEntryId,
   );
   const combinedStandings = buildCombinedStandings(managers);
+  const playerLookup = buildPlayerLookup(bootstrap, collectTransferPlayerIds(managerDataByEntryId));
   const payload = {
     generatedAt: new Date().toISOString(),
     season: season.key,
     seasonName: season.name,
     currentGameweek: bootstrap.events.find((event) => event.is_current)?.id ?? null,
     totalPlayers: bootstrap.total_players ?? null,
+    playerLookup,
     rvfaLeague,
     cup: rvfaLeague.cup,
     divisions: divisionStandings,

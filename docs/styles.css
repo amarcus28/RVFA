@@ -359,6 +359,80 @@ th {
   text-transform: capitalize;
 }
 
+.gw-transfer-expand-col {
+  width: 2.75rem;
+}
+
+td.manager-gw-expand-cell {
+  width: 2.75rem;
+  padding-right: 6px;
+  vertical-align: middle;
+}
+
+.manager-gw-expand-cell .gw-transfer-expand-slot {
+  display: inline-block;
+  width: 2rem;
+}
+
+.gw-transfer-expand {
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.65);
+  color: #bae6fd;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.gw-transfer-expand:hover {
+  border-color: rgba(56, 189, 248, 0.55);
+  color: #f0f9ff;
+}
+
+.gw-transfer-expand:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+tr.manager-gw-transfers-row td {
+  padding-top: 10px;
+  padding-bottom: 14px;
+  background: rgba(15, 23, 42, 0.35);
+  white-space: normal;
+  vertical-align: top;
+}
+
+.manager-transfer-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  color: #e2e8f0;
+}
+
+.manager-transfer-out {
+  color: #fca5a5;
+  font-weight: 600;
+}
+
+.manager-transfer-in {
+  color: #86efac;
+  font-weight: 600;
+}
+
+.manager-transfer-empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
 .zone-gold {
   background: rgba(250, 204, 21, 0.22);
 }
