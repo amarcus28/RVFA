@@ -847,6 +847,44 @@ caption.standings-prize-caption {
   line-height: 1.4;
 }
 
+.league-chart-single {
+  margin-top: 4px;
+  min-width: 0;
+}
+
+.league-season-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none;
+}
+
+.league-season-chart-svg .league-chart-swap-marker circle {
+  fill: #0f172a;
+  stroke-width: 2px;
+}
+
+.league-chart-legend {
+  margin-bottom: 12px;
+}
+
+.league-chart-tooltip {
+  min-width: 220px;
+  max-width: min(340px, 94vw);
+}
+
+.league-chart-tooltip-dl {
+  max-height: min(52vh, 340px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.league-chart-tooltip-empty {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
 .empty-state {
   margin-bottom: 0;
   color: #94a3b8;

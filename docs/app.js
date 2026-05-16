@@ -243,6 +243,67 @@ function latestGameweek(manager) {
   return null;
 }
 
+function totalPointsAtGameweek(manager, gw) {
+  if (manager?.eventDetails?.length == null) {
+    return null;
+  }
+
+  const ev = manager.eventDetails.find((e) => e.event === gw);
+  const tp = ev?.entryHistory?.total_points;
+
+  if (tp == null || !Number.isFinite(Number(tp))) {
+    return null;
+  }
+
+  return Number(tp);
+}
+
+function divisionChartGameweekBounds(league, data) {
+  let minGw = null;
+  let maxGw = 0;
+
+  for (const team of league.standings) {
+    const m = data.managers.find((c) => c.id === team.entryId);
+    if (!m?.eventDetails) {
+      continue;
+    }
+
+    for (const ev of m.eventDetails) {
+      if (ev.event == null) {
+        continue;
+      }
+
+      const played = ev.entryHistory?.points != null;
+
+      if (played) {
+        minGw = minGw == null ? ev.event : Math.min(minGw, ev.event);
+        maxGw = Math.max(maxGw, ev.event);
+      }
+    }
+  }
+
+  if (minGw == null) {
+    return null;
+  }
+
+  const cap =
+    data.currentGameweek != null && Number.isFinite(Number(data.currentGameweek))
+      ? Number(data.currentGameweek)
+      : null;
+
+  if (cap != null) {
+    maxGw = Math.min(maxGw, cap);
+  }
+
+  minGw = Math.max(1, minGw);
+
+  if (maxGw < minGw) {
+    return null;
+  }
+
+  return { minGw, maxGw };
+}
+
 function formatGameweekPoints(gameweek) {
   const points = gameweek?.points ?? gameweek?.entryHistory?.points ?? null;
   const transferCost =
@@ -977,6 +1038,147 @@ const MANAGER_CHART_COLORS = {
   bench: "#f472b6",
 };
 
+const LEAGUE_SEASON_CHART_PALETTE = [
+  "#38bdf8",
+  "#4ade80",
+  "#fb923c",
+  "#f472b6",
+  "#a78bfa",
+  "#facc15",
+  "#2dd4bf",
+  "#f87171",
+  "#60a5fa",
+  "#c084fc",
+  "#e879f9",
+  "#22d3ee",
+  "#fbbf24",
+  "#34d399",
+  "#818cf8",
+  "#fb7185",
+];
+
+/** Last gameweek before mid-season promotion/relegation (inclusive of old division). */
+const MID_SEASON_DIVISION_SPLIT_GW = 19;
+
+/** First gameweek after swap; managers appear in their new division from here. */
+const MID_SEASON_DIVISION_FROM_GW = 20;
+
+/**
+ * 2025/26: promoted Championship → Premier after GW19.
+ * Confirm Shea's FPL entry id if this is not Seamus Magee (5873477).
+ */
+const MID_SEASON_PROMOTED_TO_PREMIER_IDS = new Set([6897611, 5873477]);
+
+/** Relegated Premier → Championship after GW19. */
+const MID_SEASON_RELEGATED_TO_CHAMPIONSHIP_IDS = new Set([1236448, 2428910]);
+
+function midSeasonDivisionSwapActive(data) {
+  return data?.season === "2025-26";
+}
+
+function divisionStandingsRow(data, entryId) {
+  for (const division of data.divisions ?? []) {
+    const row = division.standings?.find((t) => t.entryId === entryId);
+    if (row) {
+      return row;
+    }
+  }
+
+  return null;
+}
+
+function divisionChartEntryOrder(leagueKey, data, swap) {
+  const league = data.divisions?.find((d) => d.key === leagueKey);
+  const base = league?.standings?.map((t) => t.entryId) ?? [];
+
+  if (!swap || !midSeasonDivisionSwapActive(data)) {
+    return base;
+  }
+
+  const extra =
+    leagueKey === "premier-league"
+      ? [...MID_SEASON_RELEGATED_TO_CHAMPIONSHIP_IDS].filter((id) => !base.includes(id))
+      : [...MID_SEASON_PROMOTED_TO_PREMIER_IDS].filter((id) => !base.includes(id));
+
+  return [...base, ...extra.sort((a, b) => a - b)];
+}
+
+function divisionCohortEntryIds(leagueKey, gw, data, swap) {
+  const pl = data.divisions?.find((d) => d.key === "premier-league");
+  const ch = data.divisions?.find((d) => d.key === "championship");
+  const league = leagueKey === "premier-league" ? pl : ch;
+  const base = league?.standings?.map((t) => t.entryId) ?? [];
+
+  if (!swap || !midSeasonDivisionSwapActive(data) || !pl?.standings?.length || !ch?.standings?.length) {
+    return base;
+  }
+
+  const plIds = pl.standings.map((t) => t.entryId);
+  const chIds = ch.standings.map((t) => t.entryId);
+
+  if (leagueKey === "premier-league") {
+    if (gw <= MID_SEASON_DIVISION_SPLIT_GW) {
+      return [...plIds.filter((id) => !MID_SEASON_PROMOTED_TO_PREMIER_IDS.has(id)), ...MID_SEASON_RELEGATED_TO_CHAMPIONSHIP_IDS];
+    }
+
+    return [...plIds];
+  }
+
+  if (gw <= MID_SEASON_DIVISION_SPLIT_GW) {
+    return [...chIds.filter((id) => !MID_SEASON_RELEGATED_TO_CHAMPIONSHIP_IDS.has(id)), ...MID_SEASON_PROMOTED_TO_PREMIER_IDS];
+  }
+
+  return [...chIds];
+}
+
+function attachMidSeasonDivisionMarkers(series, leagueKey, gws, swapActive) {
+  if (!swapActive) {
+    for (const s of series) {
+      s.markers = [];
+    }
+
+    return;
+  }
+
+  for (const s of series) {
+    s.markers = [];
+
+    if (MID_SEASON_PROMOTED_TO_PREMIER_IDS.has(s.entryId)) {
+      if (leagueKey === "championship") {
+        for (let i = gws.length - 1; i >= 0; i -= 1) {
+          if (gws[i] <= MID_SEASON_DIVISION_SPLIT_GW && s.ranks[i] != null) {
+            s.markers.push({ gw: gws[i], label: "P" });
+            break;
+          }
+        }
+      } else {
+        for (let i = 0; i < gws.length; i += 1) {
+          if (gws[i] >= MID_SEASON_DIVISION_FROM_GW && s.ranks[i] != null) {
+            s.markers.push({ gw: gws[i], label: "P" });
+            break;
+          }
+        }
+      }
+    } else if (MID_SEASON_RELEGATED_TO_CHAMPIONSHIP_IDS.has(s.entryId)) {
+      if (leagueKey === "premier-league") {
+        for (let i = gws.length - 1; i >= 0; i -= 1) {
+          if (gws[i] <= MID_SEASON_DIVISION_SPLIT_GW && s.ranks[i] != null) {
+            s.markers.push({ gw: gws[i], label: "R" });
+            break;
+          }
+        }
+      } else {
+        for (let i = 0; i < gws.length; i += 1) {
+          if (gws[i] >= MID_SEASON_DIVISION_FROM_GW && s.ranks[i] != null) {
+            s.markers.push({ gw: gws[i], label: "R" });
+            break;
+          }
+        }
+      }
+    }
+  }
+}
+
 function buildManagerGameweekRows(manager) {
   if (!manager?.eventDetails?.length) {
     return [];
@@ -1000,6 +1202,85 @@ function buildManagerGameweekRows(manager) {
     })
     .filter((r) => r.gw != null)
     .sort((a, b) => a.gw - b.gw);
+}
+
+function buildDivisionSeasonSeries(league, data) {
+  const bounds = divisionChartGameweekBounds(league, data);
+  if (!bounds) {
+    return null;
+  }
+
+  const gws = [];
+
+  for (let g = bounds.minGw; g <= bounds.maxGw; g += 1) {
+    gws.push(g);
+  }
+
+  if (!gws.length) {
+    return null;
+  }
+
+  const swapActive = midSeasonDivisionSwapActive(data);
+  const entryOrder = divisionChartEntryOrder(league.key, data, swapActive);
+  const managersById = new Map(data.managers.map((m) => [m.id, m]));
+
+  const series = entryOrder.map((entryId, idx) => {
+    const row = divisionStandingsRow(data, entryId);
+
+    return {
+      entryId,
+      label: row?.entryName ?? `Team ${entryId}`,
+      color: LEAGUE_SEASON_CHART_PALETTE[idx % LEAGUE_SEASON_CHART_PALETTE.length],
+      ranks: [],
+      points: [],
+      markers: [],
+    };
+  });
+
+  for (const gw of gws) {
+    const cohort = divisionCohortEntryIds(league.key, gw, data, swapActive);
+    const cohortSet = new Set(cohort);
+    const totals = cohort.map((oid) => {
+      const om = managersById.get(oid);
+
+      return { oid, tp: om ? totalPointsAtGameweek(om, gw) : null };
+    });
+
+    for (const s of series) {
+      if (!cohortSet.has(s.entryId)) {
+        s.ranks.push(null);
+        s.points.push(null);
+
+        continue;
+      }
+
+      const tp = managersById.get(s.entryId) ? totalPointsAtGameweek(managersById.get(s.entryId), gw) : null;
+
+      if (tp == null) {
+        s.ranks.push(null);
+        s.points.push(null);
+
+        continue;
+      }
+
+      let better = 0;
+
+      for (const { tp: other } of totals) {
+        if (other != null && other > tp) {
+          better += 1;
+        }
+      }
+
+      s.ranks.push(better + 1);
+      s.points.push(tp);
+    }
+  }
+
+  const rankScaleMax = league.standings?.length ?? 0;
+
+  attachMidSeasonDivisionMarkers(series, league.key, gws, swapActive);
+
+  return { gws, series, rankScaleMax };
 }
 
 function normalizeToUnitInterval(values, invert) {
@@ -1030,6 +1311,364 @@ function normalizeToUnitInterval(values, invert) {
 
     return t;
   });
+}
+
+function linePathLeagueSeries(gws, norms, xAt, yAt) {
+  const parts = [];
+  let penUp = true;
+
+  for (let i = 0; i < gws.length; i += 1) {
+    const t = norms[i];
+
+    if (t == null || !Number.isFinite(Number(t))) {
+      penUp = true;
+      continue;
+    }
+
+    const x = xAt(gws[i]);
+    const y = yAt(t);
+
+    if (y == null) {
+      penUp = true;
+      continue;
+    }
+
+    const cmd = penUp ? "M" : "L";
+    parts.push(`${cmd}${x.toFixed(1)} ${y.toFixed(1)}`);
+    penUp = false;
+  }
+
+  return parts.join(" ");
+}
+
+function wireLeagueChartLegend(section) {
+  const toggles = [...section.querySelectorAll(".league-chart-series-toggle")];
+
+  const apply = (toggle) => {
+    const id = toggle.dataset.entryId;
+
+    if (!id) {
+      return;
+    }
+
+    const vis = toggle.checked ? "visible" : "hidden";
+
+    for (const svg of section.querySelectorAll(".league-season-chart-svg")) {
+      for (const el of svg.querySelectorAll(`[data-entry-id="${id}"]`)) {
+        el.setAttribute("visibility", vis);
+      }
+    }
+
+    const item = toggle.closest(".manager-chart-legend-item");
+
+    if (item) {
+      item.classList.toggle("is-off", !toggle.checked);
+    }
+  };
+
+  const onChange = (event) => {
+    apply(event.target);
+  };
+
+  for (const toggle of toggles) {
+    toggle.addEventListener("change", onChange);
+    apply(toggle);
+  }
+
+  return () => {
+    for (const toggle of toggles) {
+      toggle.removeEventListener("change", onChange);
+    }
+  };
+}
+
+function renderLeagueSeasonCharts(league, data) {
+  const section = document.querySelector("#league-season-charts");
+  const legendEl = document.querySelector("#league-chart-legend");
+  const rankSvg = document.querySelector("#league-rank-chart-svg");
+  const tooltip = document.querySelector("#league-chart-tooltip");
+
+  if (!section || !legendEl || !rankSvg || !tooltip) {
+    return;
+  }
+
+  if (section._leagueChartTeardown) {
+    section._leagueChartTeardown();
+    section._leagueChartTeardown = null;
+  }
+
+  const model = buildDivisionSeasonSeries(league, data);
+
+  if (!model?.gws?.length || !model.series.length) {
+    section.hidden = true;
+
+    return;
+  }
+
+  const { gws, series, rankScaleMax } = model;
+  const W = 800;
+  const H = 300;
+  const pad = { l: 56, r: 26, t: 14, b: 52 };
+  const plotW = W - pad.l - pad.r;
+  const plotH = H - pad.t - pad.b;
+  const gwMin = gws[0];
+  const gwMax = gws.at(-1);
+  const gwSpan = Math.max(1, gwMax - gwMin);
+  const xAt = (gw) => pad.l + ((gw - gwMin) / gwSpan) * plotW;
+  const yAt = (t) => (t == null ? null : pad.t + (1 - t) * plotH);
+  const rankToT = (rank) => {
+    if (rank == null || rankScaleMax <= 1) {
+      return null;
+    }
+
+    return (rankScaleMax - rank) / Math.max(1, rankScaleMax - 1);
+  };
+
+  const strokeW = rankScaleMax > 12 ? 1.55 : 2.1;
+
+  legendEl.innerHTML = series
+    .map(
+      (s) => `
+      <li class="manager-chart-legend-item" data-entry-id="${escapeHtml(String(s.entryId))}">
+        <label class="manager-chart-legend-label">
+          <input type="checkbox" class="league-chart-series-toggle manager-chart-series-toggle" checked data-entry-id="${escapeHtml(String(s.entryId))}" />
+          <span class="manager-chart-swatch" style="background:${escapeHtml(s.color)}" aria-hidden="true"></span>
+          ${teamLink(s.entryId, s.label)}
+        </label>
+      </li>`,
+    )
+    .join("");
+
+  const xTicks = [];
+  const tickStep = gwSpan > 18 ? 2 : 1;
+
+  for (let g = gwMin; g <= gwMax; g += tickStep) {
+    xTicks.push(
+      `<text x="${xAt(g).toFixed(1)}" y="${H - 24}" text-anchor="middle" fill="#64748b" font-size="11">${g}</text>`,
+    );
+  }
+
+  let rankYTicks = "";
+
+  if (rankScaleMax > 1) {
+    const sampleRanks = Array.from(
+      new Set([1, rankScaleMax, Math.ceil(rankScaleMax / 2)].filter((r) => r >= 1 && r <= rankScaleMax)),
+    ).sort((a, b) => a - b);
+
+    rankYTicks = sampleRanks
+      .map((r) => {
+        const t = rankToT(r);
+        const y = yAt(t);
+
+        if (y == null) {
+          return "";
+        }
+
+        return `<text x="${pad.l - 10}" y="${(y + 4).toFixed(1)}" text-anchor="end" fill="#64748b" font-size="11">${r}</text>`;
+      })
+      .join("");
+  }
+
+  const rankChartInner = series
+    .map((s) => {
+      const norms = s.ranks.map((r) => (r == null ? null : rankToT(r)));
+      const d = linePathLeagueSeries(gws, norms, xAt, yAt);
+
+      if (!d) {
+        return "";
+      }
+
+      return `<path class="league-chart-line" data-entry-id="${escapeHtml(String(s.entryId))}" d="${d}" fill="none" stroke="${escapeHtml(s.color)}" stroke-width="${strokeW}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    })
+    .join("");
+
+  const swapTip =
+    league.key === "premier-league"
+      ? {
+          P: "Promoted from Championship after GW19",
+          R: "Relegated to Championship after GW19",
+        }
+      : {
+          P: "Promoted to Premier League after GW19",
+          R: "Relegated from Premier League after GW19",
+        };
+
+  const swapMarkersHtml = series
+    .flatMap((s) =>
+      (s.markers ?? []).map((m) => {
+        const gi = gws.indexOf(m.gw);
+
+        if (gi < 0) {
+          return "";
+        }
+
+        const rank = s.ranks[gi];
+
+        if (rank == null) {
+          return "";
+        }
+
+        const t = rankToT(rank);
+
+        if (t == null) {
+          return "";
+        }
+
+        const cx = xAt(m.gw);
+        const cy = yAt(t);
+        const accent = m.label === "P" ? "#4ade80" : "#f87171";
+        const fillBg = "#0f172a";
+        const tip = swapTip[m.label] ?? "";
+
+        return `<g class="league-chart-swap-marker" data-entry-id="${escapeHtml(String(s.entryId))}">
+        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="10" fill="${fillBg}" stroke="${accent}" stroke-width="2"/>
+        <text x="${cx.toFixed(1)}" y="${cy.toFixed(1)}" text-anchor="middle" dominant-baseline="central" fill="${accent}" font-size="10" font-weight="800" font-family="system-ui,-apple-system,BlinkMacSystemFont,sans-serif">${escapeHtml(m.label)}</text>
+        <title>${escapeHtml(tip)}</title>
+      </g>`;
+      }),
+    )
+    .join("");
+
+  rankSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  rankSvg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  rankSvg.setAttribute("role", "img");
+  rankSvg.setAttribute(
+    "aria-label",
+    "Line chart of league position history by gameweek for each manager in this division",
+  );
+  rankSvg.innerHTML = `
+    <line class="league-chart-crosshair" x1="0" y1="${pad.t}" x2="0" y2="${pad.t + plotH}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4 4" opacity="0" pointer-events="none"/>
+    ${rankYTicks}
+    ${rankChartInner}
+    ${xTicks.join("")}
+    ${swapMarkersHtml}
+  `;
+
+  const rankCross = rankSvg.querySelector(".league-chart-crosshair");
+
+  const nearestIndex = (clientX, rect) => {
+    const scaleX = rect.width / W;
+    const padLPx = pad.l * scaleX;
+    const plotWPx = plotW * scaleX;
+    const x = clientX - rect.left;
+    const ratio = plotWPx > 0 ? Math.min(1, Math.max(0, Number.isFinite(x) ? (x - padLPx) / plotWPx : 0)) : 0;
+    const idx = Math.round(ratio * Math.max(0, gws.length - 1));
+
+    return Math.min(Math.max(0, idx), gws.length - 1);
+  };
+
+  const visibleEntryIds = () =>
+    new Set(
+      [...section.querySelectorAll(".league-chart-series-toggle:checked")]
+        .map((t) => t.dataset.entryId)
+        .filter(Boolean),
+    );
+
+  const showTooltip = (idx, clientX, clientY) => {
+    const gwVal = gws[idx];
+
+    if (rankCross) {
+      const x = xAt(gwVal).toFixed(1);
+      rankCross.setAttribute("opacity", "0.55");
+      rankCross.setAttribute("x1", x);
+      rankCross.setAttribute("x2", x);
+    }
+
+    const allowed = visibleEntryIds();
+    const rows = series
+      .filter((s) => allowed.has(String(s.entryId)))
+      .map((s) => ({
+        label: s.label,
+        entryId: s.entryId,
+        rank: s.ranks[idx],
+        pts: s.points[idx],
+      }))
+      .filter((row) => row.rank != null || row.pts != null)
+      .sort((a, b) => {
+        const ar = a.rank ?? 9999;
+        const br = b.rank ?? 9999;
+
+        if (ar !== br) {
+          return ar - br;
+        }
+
+        const ap = a.pts ?? -1;
+        const bp = b.pts ?? -1;
+
+        return bp - ap;
+      });
+
+    const dl =
+      rows.length === 0
+        ? '<div class="league-chart-tooltip-empty">No data for this gameweek.</div>'
+        : `<dl class="manager-chart-tooltip-dl league-chart-tooltip-dl">${rows
+            .map((row) => {
+              const r = row.rank != null ? formatCount(row.rank) : "—";
+              const p = row.pts != null ? formatCount(row.pts) : "—";
+
+              return `<div><dt>${teamLink(row.entryId, row.label)}</dt><dd>Rank ${escapeHtml(r)} · ${escapeHtml(p)} pts</dd></div>`;
+            })
+            .join("")}</dl>`;
+
+    tooltip.innerHTML = `
+      <div class="manager-chart-tooltip-title">GW\u00A0${escapeHtml(String(gwVal))}</div>
+      ${dl}
+    `;
+    tooltip.hidden = false;
+    tooltip.style.position = "fixed";
+    const tw = tooltip.offsetWidth;
+    const th = tooltip.offsetHeight;
+    const offset = 14;
+    const margin = 10;
+    let left = clientX + offset;
+    let top = clientY + offset;
+
+    if (left + tw > window.innerWidth - margin) {
+      left = clientX - tw - offset;
+    }
+
+    if (top + th > window.innerHeight - margin) {
+      top = clientY - th - offset;
+    }
+
+    left = Math.max(margin, Math.min(left, window.innerWidth - tw - margin));
+    top = Math.max(margin, Math.min(top, window.innerHeight - th - margin));
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${top}px`;
+  };
+
+  const hideTooltip = () => {
+    if (rankCross) {
+      rankCross.setAttribute("opacity", "0");
+    }
+
+    tooltip.hidden = true;
+  };
+
+  const onMove = (event) => {
+    const rect = rankSvg.getBoundingClientRect();
+    const idx = nearestIndex(event.clientX, rect);
+    showTooltip(idx, event.clientX, event.clientY);
+  };
+
+  const onLeave = () => hideTooltip();
+
+  rankSvg.addEventListener("pointermove", onMove);
+  rankSvg.addEventListener("pointerleave", onLeave);
+  rankSvg.addEventListener("pointerdown", onMove);
+
+  const removeLegend = wireLeagueChartLegend(section);
+
+  section._leagueChartTeardown = () => {
+    removeLegend();
+    rankSvg.removeEventListener("pointermove", onMove);
+    rankSvg.removeEventListener("pointerleave", onLeave);
+    rankSvg.removeEventListener("pointerdown", onMove);
+    hideTooltip();
+  };
+
+  section.hidden = false;
 }
 
 function buildManagerStatCells(stats) {
@@ -1563,6 +2202,7 @@ async function main() {
     }
 
     renderLeagueStandings(league, data);
+    renderLeagueSeasonCharts(league, data);
     renderCup([{ leagueName: league.name, cup: league.cup }], {
       prizeCaption: CUP_PRIZE_CAPTION[leagueKey] ?? null,
     });
