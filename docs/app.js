@@ -1062,14 +1062,93 @@ function divisionLabels(data, divisionKeys) {
 
 const MAX_RVFA_FREE_TRANSFER_BANK = 5;
 
+function applyRvfaWeekClose(openingBeforeWeek, transfersMade, xferChipKey) {
+  if (xferChipKey === "wildcard") {
+    return Math.min(MAX_RVFA_FREE_TRANSFER_BANK, openingBeforeWeek + 1);
+  }
+
+  if (xferChipKey === "freehit") {
+    return Math.min(MAX_RVFA_FREE_TRANSFER_BANK, openingBeforeWeek);
+  }
+
+  const rolled = Math.max(0, openingBeforeWeek - transfersMade);
+
+  return Math.min(MAX_RVFA_FREE_TRANSFER_BANK, rolled + 1);
+}
+
+/**
+ * Invert {@link applyRvfaWeekClose} for a contiguous pair of gameweeks: given opening at
+ * the start of GW (after phantoms), returns a consistent opening immediately before prevEv closed.
+ *
+ * Uses default cap semantics; skips when phantom weeks sit between prev and next.
+ */
+function inferredOpeningBeforePreviousWeek(prevEv, openingAtNextGwStart) {
+  const nextOpen = Number(openingAtNextGwStart);
+
+  if (!Number.isFinite(nextOpen)) {
+    return null;
+  }
+
+  const h = prevEv.entryHistory ?? {};
+  const transfersMade = Number(h.event_transfers) || 0;
+  const chipKey = normalizeManagerChipKey(prevEv.activeChip);
+
+  if (chipKey === "freehit") {
+    for (let prevOpening = 0; prevOpening <= MAX_RVFA_FREE_TRANSFER_BANK; prevOpening += 1) {
+      if (applyRvfaWeekClose(prevOpening, transfersMade, "freehit") === nextOpen) {
+        return prevOpening;
+      }
+    }
+
+    return null;
+  }
+
+  if (chipKey === "wildcard") {
+    for (let prevOpening = 0; prevOpening <= MAX_RVFA_FREE_TRANSFER_BANK; prevOpening += 1) {
+      if (applyRvfaWeekClose(prevOpening, transfersMade, "wildcard") === nextOpen) {
+        return prevOpening;
+      }
+    }
+
+    return null;
+  }
+
+  /* Normal week: openingNext = min(CAP, max(0, openingPrev - T) + 1) */
+  let inner = nextOpen - 1;
+
+  if (inner > MAX_RVFA_FREE_TRANSFER_BANK - 1) {
+    return null;
+  }
+
+  inner = Math.max(0, inner);
+
+  const prevOpening = transfersMade + inner;
+
+  if (prevOpening > MAX_RVFA_FREE_TRANSFER_BANK || prevOpening < 0) {
+    return null;
+  }
+
+  /* Verify inversion (drops ambiguous cap-bound edges) */
+  const check = applyRvfaWeekClose(prevOpening, transfersMade, "");
+
+  if (check !== nextOpen) {
+    return null;
+  }
+
+  return prevOpening;
+}
+
 /**
  * Opening free-transfer bank at the start of each gameweek (before that week's moves).
- * Rules: bank is 0 before GW1 in the simulated sequence; accumulates +1 per gameweek
- * (cap 5); Free Hit skips that week's +1 while Wildcard still receives it;
- * wildcard/free hit weeks do not spend the bank when counting moves.
+ * Rules follow RVFA: bank is 0 before GW1 in the simulated sequence; accumulates +1 per
+ * gameweek (cap 5); Free Hit skips that week's +1 while Wildcard still receives it;
+ * wildcard/free-hit weeks do not spend the bank when counting moves.
  *
- * Weeks missing from {@link manager.eventDetails} are assumed to be ordinary weeks with
- * zero transfers — so late snapshots still roll the bank forward.
+ * When Fantasy's recorded transfer hit contradicts this model — e.g. after blank weeks,
+ * doubles, chip interactions — openings are snapped to `transfers − (hit points / 4)` for
+ * normal weeks, then propagated backward across consecutive gameweeks so earlier rows agree.
+ *
+ * Weeks missing from {@link manager.eventDetails} are assumed to be ordinary zero-transfer weeks.
  */
 function rvfaOpeningFreeTransfersByGameweek(manager) {
   const details = [...(manager?.eventDetails ?? [])].sort((a, b) => Number(a.event) - Number(b.event));
@@ -1101,13 +1180,23 @@ function rvfaOpeningFreeTransfersByGameweek(manager) {
       opening = applyNormalClose(opening, 0);
     }
 
-    map.set(gw, opening);
-
     const h = ev.entryHistory ?? {};
     const transfersMade = Number(h.event_transfers) || 0;
+    const costPts = Number(h.event_transfers_cost) || 0;
     const chipKey = normalizeManagerChipKey(ev.activeChip);
+    const xferChip = chipKey === "wildcard" || chipKey === "freehit";
 
-    if (chipKey === "wildcard" || chipKey === "freehit") {
+    if (!xferChip && costPts > 0 && costPts % 4 === 0) {
+      const snapped = transfersMade - costPts / 4;
+
+      if (Number.isFinite(snapped)) {
+        opening = Math.max(0, Math.min(MAX_RVFA_FREE_TRANSFER_BANK, snapped));
+      }
+    }
+
+    map.set(gw, opening);
+
+    if (xferChip) {
       const increment = chipKey === "freehit" ? 0 : 1;
 
       opening = Math.min(MAX_RVFA_FREE_TRANSFER_BANK, opening + increment);
@@ -1116,6 +1205,52 @@ function rvfaOpeningFreeTransfersByGameweek(manager) {
     }
 
     prevGw = gw;
+  }
+
+  for (let ei = details.length - 1; ei >= 0; ei -= 1) {
+    const ev = details[ei];
+    const gw = Number(ev.event);
+    const h = ev.entryHistory ?? {};
+    const costPts = Number(h.event_transfers_cost) || 0;
+    const chipKey = normalizeManagerChipKey(ev.activeChip);
+    const xferChip = chipKey === "wildcard" || chipKey === "freehit";
+
+    if (xferChip || costPts <= 0 || costPts % 4 !== 0) {
+      continue;
+    }
+
+    let oNext = map.get(gw);
+
+    if (!Number.isFinite(Number(oNext))) {
+      continue;
+    }
+
+    /** Cap how far a hit-gameweek anchor propagates (avoids overwriting distant rows). */
+    let backSteps = 0;
+
+    for (let pj = ei - 1; pj >= 0; pj -= 1) {
+      if (backSteps >= 32) {
+        break;
+      }
+
+      const prevEv = details[pj];
+      const gwP = Number(prevEv.event);
+      const gwN = Number(details[pj + 1].event);
+
+      if (!Number.isFinite(gwP) || !Number.isFinite(gwN) || gwN !== gwP + 1) {
+        break;
+      }
+
+      const inferred = inferredOpeningBeforePreviousWeek(prevEv, oNext);
+
+      if (inferred == null) {
+        break;
+      }
+
+      map.set(gwP, inferred);
+      oNext = inferred;
+      backSteps += 1;
+    }
   }
 
   return map;
