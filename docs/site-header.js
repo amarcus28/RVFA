@@ -1,40 +1,39 @@
-const LEAGUE_PAGES = new Set(["overall.html", "premier-league.html", "championship.html"]);
+function initSiteNavMenu() {
+  const toggle = document.querySelector(".site-nav-toggle");
+  const panel = document.getElementById("site-nav-panel");
 
-function currentHtmlFile() {
-  const path = window.location.pathname;
-  const segment = path.includes("/") ? path.slice(path.lastIndexOf("/") + 1) : path;
-
-  return segment && segment.includes(".") ? segment : "index.html";
-}
-
-function initSiteNavJump() {
-  const select = document.getElementById("site-nav-jump");
-  if (!select) {
+  if (!toggle || !panel) {
     return;
   }
 
-  const file = currentHtmlFile();
+  function setOpen(open) {
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
 
-  if (LEAGUE_PAGES.has(file)) {
-    const match = `./${file}`;
-    const index = [...select.options].findIndex((option) => option.value === match);
-
-    if (index >= 0) {
-      select.selectedIndex = index;
+    if (open) {
+      panel.removeAttribute("hidden");
+    } else {
+      panel.setAttribute("hidden", "");
     }
   }
 
-  select.addEventListener("change", () => {
-    const url = select.value;
+  toggle.addEventListener("click", () => {
+    setOpen(toggle.getAttribute("aria-expanded") !== "true");
+  });
 
-    if (url) {
-      window.location.href = url;
+  for (const link of panel.querySelectorAll("a")) {
+    link.addEventListener("click", () => setOpen(false));
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && toggle.getAttribute("aria-expanded") === "true") {
+      setOpen(false);
     }
   });
 }
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initSiteNavJump);
+  document.addEventListener("DOMContentLoaded", initSiteNavMenu);
 } else {
-  initSiteNavJump();
+  initSiteNavMenu();
 }

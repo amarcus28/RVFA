@@ -31,21 +31,24 @@
             <a href="./history.html">League History</a>
             <a href="./charter.html" aria-current="page">Rules &amp; Prizes</a>
           </nav>
-          <div class="site-nav-mobile">
-            <label for="site-nav-jump" class="site-nav-jump-label">Leagues menu</label>
-            <select id="site-nav-jump" class="site-nav-jump" aria-label="Jump to league">
-              <option value="">Leagues…</option>
-              <option value="./overall.html">RVFA Overall</option>
-              <option value="./premier-league.html">Premier League</option>
-              <option value="./championship.html">Championship</option>
-            </select>
-            <nav class="site-nav site-nav--tray" aria-label="Other pages">
-              <a href="./index.html">Home</a>
-              <a href="./history.html">League History</a>
-              <a href="./charter.html" aria-current="page">Rules &amp; Prizes</a>
-            </nav>
-          </div>
+          <button
+            type="button"
+            class="site-nav-toggle"
+            aria-expanded="false"
+            aria-controls="site-nav-panel"
+            aria-label="Open menu"
+          >
+            <span class="site-nav-toggle-bars" aria-hidden="true"></span>
+          </button>
         </div>
+        <nav id="site-nav-panel" class="site-nav site-nav--panel" aria-label="RVFA pages" hidden>
+          <a href="./index.html">Home</a>
+          <a href="./overall.html">RVFA Overall</a>
+          <a href="./premier-league.html">Premier League</a>
+          <a href="./championship.html">Championship</a>
+          <a href="./history.html">League History</a>
+          <a href="./charter.html" aria-current="page">Rules &amp; Prizes</a>
+        </nav>
       </header>
       <main class="site-main">
       <header class="hero">
