@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>RVFA Overall</title>
+    <title>League History · The RVFA</title>
     <link rel="icon" href="./data/images/pl_logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="./data/images/pl_logo.png" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body data-page="overall">
+  <body data-page="history">
     <div class="page">
       <header class="site-header">
         <div class="site-header-inner">
@@ -25,10 +25,10 @@
           </a>
           <nav class="site-nav site-nav--desktop" aria-label="RVFA pages">
             <a href="./index.html">Home</a>
-            <a href="./overall.html" aria-current="page">RVFA Overall</a>
+            <a href="./overall.html">RVFA Overall</a>
             <a href="./premier-league.html">Premier League</a>
             <a href="./championship.html">Championship</a>
-            <a href="./history.html">League History</a>
+            <a href="./history.html" aria-current="page">League History</a>
             <a href="./charter.html">Rules &amp; Prizes</a>
           </nav>
           <div class="site-nav-mobile">
@@ -41,49 +41,20 @@
             </select>
             <nav class="site-nav site-nav--tray" aria-label="Other pages">
               <a href="./index.html">Home</a>
-              <a href="./history.html">League History</a>
+              <a href="./history.html" aria-current="page">League History</a>
               <a href="./charter.html">Rules &amp; Prizes</a>
             </nav>
           </div>
         </div>
       </header>
       <main class="site-main">
-      <header class="hero">
-        <p class="eyebrow">Overall</p>
-        <h1>The RVFA</h1>
-        <p id="generated-at">Loading data...</p>
-      </header>
+        <header class="hero">
+          <p class="eyebrow">The RVFA</p>
+          <h1>League History</h1>
+        </header>
 
-      <section class="card">
-        <div class="section-heading">
-          <h2>Combined League</h2>
-          <p>Premier League and Championship together</p>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th><span class="th-long">Rank</span><span class="th-short">#</span></th>
-                <th>Team</th>
-                <th><span class="th-long">Divisions</span><span class="th-short">Div</span></th>
-                <th>Total</th>
-                <th><span class="th-long">Latest GW</span><span class="th-short">GW</span></th>
-                <th>Chip</th>
-              </tr>
-            </thead>
-            <tbody id="combined-standings"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="card">
-        <div class="section-heading">
-          <h2>Cups</h2>
-          <p id="cup-status">Loading cup data...</p>
-        </div>
-        <div id="cup-matchups"></div>
-      </section>
-    </main>
+        <div id="history-eras"></div>
+      </main>
     </div>
 
     <script src="./site-header.js" defer></script>

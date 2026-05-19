@@ -1,5 +1,6 @@
 const dataUrl = "./data/rvfa.json";
 const leagueUpdateUrl = "./data/league_updates/latest.md";
+const leagueHistoryUrl = "./data/league-history.json";
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (character) => {
@@ -597,6 +598,108 @@ function teamLink(entryId, teamName) {
   }
 
   return `<a class="team-link" href="${managerUrl(entryId)}">${escapedName}</a>`;
+}
+
+function historyWinnerCell(name, { emptyLabel = "—", pendingLabel = "TBD" } = {}) {
+  if (name) {
+    return escapeHtml(name);
+  }
+
+  const label = pendingLabel ?? emptyLabel;
+
+  return `<span class="history-empty">${escapeHtml(label)}</span>`;
+}
+
+function renderRvaPlHistoryTable(seasons) {
+  const rows = seasons
+    .map(
+      (row) => `
+      <tr>
+        <th scope="row">${escapeHtml(row.season)}</th>
+        <td>${historyWinnerCell(row.league)}</td>
+        <td>${historyWinnerCell(row.cup, { emptyLabel: "—", pendingLabel: null })}</td>
+      </tr>`,
+    )
+    .join("");
+
+  return `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Season</th>
+            <th scope="col">League champion</th>
+            <th scope="col">Cup winner</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function renderRvfaHistoryTable(seasons) {
+  const rows = seasons
+    .map(
+      (row) => `
+      <tr>
+        <th scope="row">${escapeHtml(row.season)}</th>
+        <td>${historyWinnerCell(row.premierLeague)}</td>
+        <td>${historyWinnerCell(row.championship)}</td>
+        <td>${historyWinnerCell(row.cups?.rvfa)}</td>
+        <td>${historyWinnerCell(row.cups?.premierLeague)}</td>
+        <td>${historyWinnerCell(row.cups?.championship)}</td>
+      </tr>`,
+    )
+    .join("");
+
+  return `
+    <div class="table-wrap history-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Season</th>
+            <th scope="col">Premier League</th>
+            <th scope="col">Championship</th>
+            <th scope="col">RVFA Cup</th>
+            <th scope="col">Premier League Cup</th>
+            <th scope="col">Championship Cup</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function renderLeagueHistoryEra(era) {
+  const table =
+    era.key === "rva-pl" ? renderRvaPlHistoryTable(era.seasons) : renderRvfaHistoryTable(era.seasons);
+
+  return `
+    <section class="card history-era" aria-labelledby="history-era-${escapeHtml(era.key)}">
+      <div class="section-heading">
+        <h2 id="history-era-${escapeHtml(era.key)}">${escapeHtml(era.title)}</h2>
+        ${era.description ? `<p>${escapeHtml(era.description)}</p>` : ""}
+      </div>
+      ${table}
+    </section>`;
+}
+
+async function renderLeagueHistoryPage() {
+  const container = document.querySelector("#history-eras");
+
+  if (!container) {
+    return;
+  }
+
+  const response = await fetch(leagueHistoryUrl, { cache: "no-cache" });
+  if (!response.ok) {
+    throw new Error(`Could not fetch ${leagueHistoryUrl}: ${response.status} ${response.statusText}`);
+  }
+
+  const history = await response.json();
+  const eras = history.eras ?? [];
+
+  container.innerHTML = eras.map((era) => renderLeagueHistoryEra(era)).join("");
 }
 
 function eventLink(entryId, eventId) {
@@ -2498,13 +2601,19 @@ function renderManagerPage(data) {
 }
 
 async function main() {
+  const page = document.body.dataset.page;
+
+  if (page === "history") {
+    await renderLeagueHistoryPage();
+    return;
+  }
+
   const response = await fetch(dataUrl, { cache: "no-cache" });
   if (!response.ok) {
     throw new Error(`Could not fetch ${dataUrl}: ${response.status} ${response.statusText}`);
   }
 
   const data = await response.json();
-  const page = document.body.dataset.page;
 
   setGeneratedAt(data);
 

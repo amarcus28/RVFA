@@ -1,0 +1,83 @@
+{
+  "eras": [
+    {
+      "key": "rvfa",
+      "title": "RVFA Era",
+      "description": "Two-division league (Premier League and Championship), from 2025/26.",
+      "seasons": [
+        {
+          "season": "2025/26",
+          "premierLeague": null,
+          "championship": null,
+          "cups": {
+            "rvfa": null,
+            "premierLeague": null,
+            "championship": null
+          }
+        }
+      ]
+    },
+    {
+      "key": "rva-pl",
+      "title": "RVA PL Era",
+      "description": "Single-division league, 2014/15 through 2024/25.",
+      "seasons": [
+        {
+          "season": "2024/25",
+          "league": "Adam Marcus",
+          "cup": "Ryan Hall"
+        },
+        {
+          "season": "2023/24",
+          "league": "Adam Marcus",
+          "cup": "Adam Marcus"
+        },
+        {
+          "season": "2022/23",
+          "league": "Adam Marcus",
+          "cup": "Wes Scholz"
+        },
+        {
+          "season": "2021/22",
+          "league": "Adam Marcus",
+          "cup": null
+        },
+        {
+          "season": "2020/21",
+          "league": "Adam Marcus",
+          "cup": null
+        },
+        {
+          "season": "2019/20",
+          "league": "Alex Lowman",
+          "cup": null
+        },
+        {
+          "season": "2018/19",
+          "league": "Ricky Marcus",
+          "cup": null
+        },
+        {
+          "season": "2017/18",
+          "league": "Ricky Marcus",
+          "cup": null
+        },
+        {
+          "season": "2016/17",
+          "league": "Ricky Marcus",
+          "cup": null
+        },
+        {
+          "season": "2015/16",
+          "league": "Adam Marcus",
+          "cup": null
+        },
+        {
+          "season": "2014/15",
+          "league": "Adam Marcus",
+          "cup": null
+        }
+      ]
+    }
+  ]
+}
