@@ -215,6 +215,33 @@ body {
   margin-bottom: 32px;
 }
 
+.hero-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 8px;
+}
+
+.hero-title-row h1 {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.hero-trophy {
+  flex-shrink: 0;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.35));
+  pointer-events: none;
+}
+
+.hero-trophy--fa-cup {
+  width: 112px;
+  height: 112px;
+}
+
 .eyebrow {
   margin: 0 0 8px;
   color: #38bdf8;
@@ -263,12 +290,30 @@ h2 {
 .link-card {
   display: grid;
   align-content: space-between;
+  justify-items: center;
+  text-align: center;
   min-height: 180px;
   padding: 24px;
   border: 1px solid rgba(148, 163, 184, 0.25);
   border-radius: 24px;
   background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(14, 116, 144, 0.22));
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+}
+
+.link-card-trophy {
+  display: block;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 12px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.35));
+  pointer-events: none;
+}
+
+.link-card-trophy--fa-cup {
+  width: 86px;
+  height: 86px;
+  margin-bottom: 6px;
 }
 
 .link-card:hover {
@@ -1124,6 +1169,20 @@ caption.standings-prize-caption {
     font-size: clamp(2.2rem, 10vw, 3.5rem);
   }
 
+  .hero-title-row {
+    gap: 12px;
+  }
+
+  .hero-trophy {
+    width: 64px;
+    height: 64px;
+  }
+
+  .hero-trophy--fa-cup {
+    width: 74px;
+    height: 74px;
+  }
+
   .section-heading {
     flex-direction: column;
     align-items: flex-start;
@@ -1132,14 +1191,34 @@ caption.standings-prize-caption {
   }
 
   .link-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 10px;
+  }
+
+  .link-card:nth-child(-n + 3) {
+    grid-column: span 2;
+  }
+
+  .link-card:nth-child(n + 4) {
+    grid-column: span 3;
   }
 
   .link-card {
     min-height: 0;
     padding: 12px 10px;
     border-radius: 16px;
+  }
+
+  .link-card-trophy {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 6px;
+  }
+
+  .link-card-trophy--fa-cup {
+    width: 52px;
+    height: 52px;
+    margin-bottom: 0;
   }
 
   .link-card span {
