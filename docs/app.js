@@ -1085,7 +1085,7 @@ function renderLeagueStandings(league, data) {
           <td>${formatCount(team.total)}</td>
           <td>${formatGameweekPoints(latest)}</td>
           <td>${escapeHtml(formatChip(latest?.activeChip))}</td>
-          <td>${team.lastRank != null ? formatCount(team.lastRank) : "-"}</td>
+          <td class="league-prev-col">${team.lastRank != null ? formatCount(team.lastRank) : "-"}</td>
         </tr>
       `;
     })

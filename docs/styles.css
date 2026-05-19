@@ -1264,6 +1264,10 @@ caption.standings-prize-caption {
     display: inline;
   }
 
+  .league-prev-col {
+    display: none;
+  }
+
   .table-wrap {
     margin: 0 -4px;
   }
